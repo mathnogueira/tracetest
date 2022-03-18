@@ -6,8 +6,8 @@ init-submodule:
 	git submodule init
 	git submodule update
 
-PROTOC_VER=0.3.1
-PROTOC_IMAGE=jaegertracing/protobuf:$(PROTOC_VER)
+PROTOC_VER=0.9.0
+PROTOC_IMAGE=otel/build-protobuf:$(PROTOC_VER)
 PROTOC=docker run --rm -u ${shell id -u} -v "${PWD}:${PWD}" -w ${PWD} ${PROTOC_IMAGE} --proto_path=${PWD}
 
 #OTEL_DOCKER_PROTOBUF ?= otel/build-protobuf:0.9.0
@@ -54,15 +54,12 @@ proto:
 		jaeger-idl/proto/api_v3/query_service.proto
 
 	$(PROTOC_INTERNAL) \
+<<<<<<< Updated upstream
 		--swagger_out=disable_default_errors=true,json_names_for_fields=true,logtostderr=true:./swagger \
+=======
+		--openapiv2_out=disable_default_errors=true,openapi_naming_strategy=legacy,logtostderr=true:./swagger \
+>>>>>>> Stashed changes
 		jaeger-idl/proto/api_v3/query_service.proto
-
-	$(PROTOC_INTERNAL) \
-		google/api/annotations.proto \
-		google/api/http.proto \
-		protoc-gen-swagger/options/annotations.proto \
-		protoc-gen-swagger/options/openapiv2.proto \
-		gogoproto/gogo.proto
 
 	$(PROTOC_WITH_GRPC) \
 		tempo-idl/tempo.proto
