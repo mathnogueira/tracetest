@@ -1,10 +1,9 @@
-import {useState} from 'react';
-import {useStoreActions} from 'react-flow-renderer';
-
 import Diagram, {SupportedDiagrams} from 'components/Diagram/Diagram';
 import DiagramSwitcher from 'components/DiagramSwitcher';
 import SpanDetail from 'components/SpanDetail';
 import TraceDrawer from 'components/TraceDrawer';
+import {useState} from 'react';
+import {useStoreActions} from 'react-flow-renderer';
 import {useAppSelector} from 'redux/hooks';
 import TestDefinitionSelectors from 'selectors/TestDefinition.selectors';
 import {TSpan} from 'types/Span.types';

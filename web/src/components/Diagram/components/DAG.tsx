@@ -1,6 +1,8 @@
 import React, {useCallback, useEffect, useMemo} from 'react';
 import ReactFlow, {Background, FlowElement} from 'react-flow-renderer';
 import {useDAGChart} from '../../../hooks/useDAGChart';
+import GuidedTourService, {GuidedTours} from '../../../services/GuidedTour.service';
+import {Steps} from '../../GuidedTour/traceStepList';
 import TraceNode from '../../TraceNode';
 import * as S from './DAG.styled';
 import TraceDiagramAnalyticsService from '../../../services/Analytics/TraceDiagramAnalytics.service';
@@ -84,7 +86,11 @@ const Diagram: React.FC<IDiagramProps> = ({affectedSpans, trace, selectedSpan, o
   }, [dagLayout, spanMap, selectedSpan?.id]);
 
   return (
-    <S.Container $showAffected={affectedSpans.length > 0} data-cy="diagram-dag">
+    <S.Container
+      data-tour={GuidedTourService.getStep(GuidedTours.Trace, Steps.Graph)}
+      $showAffected={affectedSpans.length > 0}
+      data-cy="diagram-dag"
+    >
       <ReactFlow
         nodeTypes={{TraceNode}}
         defaultZoom={0.5}
