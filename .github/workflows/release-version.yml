@@ -256,7 +256,7 @@ jobs:
 
   chocolatey-release:
     needs: release-cli
-    name: Release on Chocolatey
+    #name: Release on Chocolatey
     runs-on: windows-latest
     steps:
       - name: Checkout
