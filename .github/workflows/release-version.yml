@@ -264,7 +264,7 @@ jobs:
       - name: Download newest version
         id: cliDownload
         run: |
-          $tag = $TAG
+          tag=$TAG
           echo "$tag"
           $version = $tag.trimStart("v")
           echo "$version"
