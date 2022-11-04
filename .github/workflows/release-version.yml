@@ -264,7 +264,8 @@ jobs:
       - name: Download newest version
         id: cliDownload
         run: |
-          $tag = $env:TAG
+          $tag = $TAG
+          echo "$tag"
           $version = $tag.trimStart("v")
           echo "$version"
           Invoke-Webrequest -URI "https://github.com/kubeshop/tracetest/releases/download/v${version}/tracetest_${version}_windows_amd64.tar.gz" -OutFile tracetest.tar.gz
