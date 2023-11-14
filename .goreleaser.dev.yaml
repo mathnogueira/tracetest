@@ -10,22 +10,23 @@ release:
   disable: true
 before:
   hooks:
-    - dir: ./server
-      cmd: go mod tidy
-    - dir: ./cli
-      cmd: go mod tidy
+    - go mod tidy
 env:
   - VERSION={{ if index .Env "VERSION"  }}{{ .Env.VERSION }}{{ else }}dev{{ end }}
+  # if TAG is defined, use it. Fallback to VERSION
+  - TAG={{ if index .Env "TAG"  }}{{ .Env.TAG }}{{ else }}{{ if index .Env "VERSION"  }}{{ .Env.VERSION }}{{ else }}dev{{ end }}{{ end }}
   - TRACETEST_ENV={{ if index .Env "TRACETEST_ENV"  }}{{ .Env.TRACETEST_ENV }}{{ else }}dev{{ end }}
   - ANALYTICS_BE_KEY={{ if index .Env "ANALYTICS_BE_KEY"  }}{{ .Env.ANALYTICS_BE_KEY }}{{ else }}{{ end }}
   - ANALYTICS_FE_KEY={{ if index .Env "ANALYTICS_FE_KEY"  }}{{ .Env.ANALYTICS_FE_KEY }}{{ else }}{{ end }}
+  - TRACETEST_DEFAULT_CLOUD_ENDPOINT={{ if index .Env "TRACETEST_DEFAULT_CLOUD_ENDPOINT"  }}{{ .Env.TRACETEST_DEFAULT_CLOUD_ENDPOINT }}{{ else }}{{ end }}
+
 builds:
   - id: server
     binary: tracetest-server
     main: ./server/main.go
     ldflags:
-    - -X github.com/kubeshop/tracetest/server/app.Version={{ .Env.VERSION }}
-    - -X github.com/kubeshop/tracetest/server/app.Env={{ .Env.TRACETEST_ENV }}
+    - -X github.com/kubeshop/tracetest/server/version.Version={{ .Env.VERSION }}
+    - -X github.com/kubeshop/tracetest/server/version.Env={{ .Env.TRACETEST_ENV }}
     - -X github.com/kubeshop/tracetest/server/analytics.SecretKey={{ .Env.ANALYTICS_BE_KEY }}
     - -X github.com/kubeshop/tracetest/server/analytics.FrontendKey={{ .Env.ANALYTICS_FE_KEY }}
     env:
@@ -39,6 +40,7 @@ builds:
     main: ./cli/main.go
     ldflags:
     - -X github.com/kubeshop/tracetest/cli/config.Version={{ .Env.VERSION }}
+    - -X github.com/kubeshop/tracetest/cli/config.DefaultCloudEndpoint={{ .Env.TRACETEST_DEFAULT_CLOUD_ENDPOINT }}
     - -X github.com/kubeshop/tracetest/cli/config.Env={{ .Env.TRACETEST_ENV }}
     - -X github.com/kubeshop/tracetest/cli/analytics.SecretKey={{ .Env.ANALYTICS_BE_KEY }}
     env:
@@ -49,11 +51,28 @@ builds:
     - amd64
 
 dockers:
-- image_templates:
-  - 'kubeshop/tracetest:{{ .Env.VERSION }}'
+- skip_push: true
+  image_templates:
+  - 'kubeshop/tracetest:{{ .Env.TAG }}'
   extra_files:
     - web/build
-    - server/migrations
+  build_flag_templates:
+  - "--pull"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.name={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.source={{.GitURL}}"
+  - "--platform=linux/amd64"
+  goos: linux
+  goarch: amd64
+
+- skip_push: true
+  image_templates:
+  - 'kubeshop/tracetest-agent:{{ .Env.VERSION }}'
+  dockerfile: "Dockerfile.agent"
+  extra_files:
+    - agent/
   build_flag_templates:
   - "--pull"
   - "--label=org.opencontainers.image.created={{.Date}}"

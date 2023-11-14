@@ -10,14 +10,29 @@
 package openapi
 
 type Trigger struct {
-	TriggerType string `json:"triggerType,omitempty"`
+	Type string `json:"type,omitempty"`
 
-	TriggerSettings TriggerTriggerSettings `json:"triggerSettings,omitempty"`
+	HttpRequest HttpRequest `json:"httpRequest,omitempty"`
+
+	Grpc GrpcRequest `json:"grpc,omitempty"`
+
+	Traceid TraceidRequest `json:"traceid,omitempty"`
+
+	Kafka KafkaRequest `json:"kafka,omitempty"`
 }
 
 // AssertTriggerRequired checks if the required fields are not zero-ed
 func AssertTriggerRequired(obj Trigger) error {
-	if err := AssertTriggerTriggerSettingsRequired(obj.TriggerSettings); err != nil {
+	if err := AssertHttpRequestRequired(obj.HttpRequest); err != nil {
+		return err
+	}
+	if err := AssertGrpcRequestRequired(obj.Grpc); err != nil {
+		return err
+	}
+	if err := AssertTraceidRequestRequired(obj.Traceid); err != nil {
+		return err
+	}
+	if err := AssertKafkaRequestRequired(obj.Kafka); err != nil {
 		return err
 	}
 	return nil

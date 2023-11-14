@@ -1,16 +1,18 @@
 import {useCallback} from 'react';
 import {capitalize} from 'lodash';
-import {useNavigate} from 'react-router-dom';
-import {useDeleteTestByIdMutation, useDeleteTransactionByIdMutation} from 'redux/apis/TraceTest.api';
-import TestAnalyticsService from 'services/Analytics/TestAnalytics.service';
+import {useDashboard} from 'providers/Dashboard/Dashboard.provider';
 import {useConfirmationModal} from 'providers/ConfirmationModal/ConfirmationModal.provider';
+import TracetestAPI from 'redux/apis/Tracetest';
+import TestAnalyticsService from 'services/Analytics/TestAnalytics.service';
 import {ResourceType} from 'types/Resource.type';
 import {useNotification} from 'providers/Notification/Notification.provider';
 
+const {useDeleteTestByIdMutation, useDeleteTestSuiteByIdMutation} = TracetestAPI.instance;
+
 const useDeleteResource = () => {
   const [deleteTestMutation] = useDeleteTestByIdMutation();
-  const [deleteTransactionMutation] = useDeleteTransactionByIdMutation();
-  const navigate = useNavigate();
+  const [deleteTestSuiteMutation] = useDeleteTestSuiteByIdMutation();
+  const {navigate} = useDashboard();
   const {showNotification} = useNotification();
 
   const {onOpen} = useConfirmationModal();
@@ -21,8 +23,8 @@ const useDeleteResource = () => {
         if (type === ResourceType.Test) {
           TestAnalyticsService.onDeleteTest();
           await deleteTestMutation({testId: id}).unwrap();
-        } else if (type === ResourceType.Transaction) {
-          await deleteTransactionMutation({transactionId: id}).unwrap();
+        } else if (type === ResourceType.TestSuite) {
+          await deleteTestSuiteMutation({testSuiteId: id}).unwrap();
         }
 
         showNotification({
@@ -34,11 +36,11 @@ const useDeleteResource = () => {
         showNotification({
           type: 'error',
           title: `Could not delete ${capitalize(type)}`,
-          description: (error as any).data,
+          description: JSON.stringify(error),
         });
       }
     },
-    [deleteTestMutation, deleteTransactionMutation, navigate, showNotification]
+    [deleteTestMutation, deleteTestSuiteMutation, navigate, showNotification]
   );
 
   return useCallback(

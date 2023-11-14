@@ -1,7 +1,6 @@
-import {Link} from 'react-router-dom';
-import {useMemo} from 'react';
 import {LinkOutlined} from '@ant-design/icons';
-
+import {useMemo} from 'react';
+import {useDashboard} from 'providers/Dashboard/Dashboard.provider';
 import {useTestRun} from 'providers/TestRun/TestRun.provider';
 import Date from 'utils/Date';
 import Info from './Info';
@@ -9,37 +8,38 @@ import * as S from './RunDetailLayout.styled';
 
 interface IProps {
   name: string;
-  testId: string;
   triggerType: string;
+  origin: string;
 }
 
-const HeaderLeft = ({name, testId, triggerType}: IProps) => {
-  const {run: {createdAt, transactionId, transactionRunId, executionTime, trace, traceId, testVersion} = {}, run} =
+const HeaderLeft = ({name, triggerType, origin}: IProps) => {
+  const {run: {createdAt, testSuiteId, testSuiteRunId, executionTime, trace, traceId, testVersion} = {}, run} =
     useTestRun();
   const createdTimeAgo = Date.getTimeAgo(createdAt ?? '');
+  const {navigate} = useDashboard();
 
   const description = useMemo(() => {
     return (
       <>
         {triggerType} • Ran {createdTimeAgo}
-        {transactionId && transactionRunId && (
+        {testSuiteId && testSuiteRunId && (
           <>
             {' '}
             •{' '}
-            <S.TransactionLink to={`/transaction/${transactionId}/run/${transactionRunId}`} target="_blank">
-              Part of transaction <LinkOutlined />
+            <S.TransactionLink to={`/testsuite/${testSuiteId}/run/${testSuiteRunId}`} target="_blank">
+              Part of test suite <LinkOutlined />
             </S.TransactionLink>
           </>
         )}
       </>
     );
-  }, [createdTimeAgo, transactionId, transactionRunId, triggerType]);
+  }, [triggerType, createdTimeAgo, testSuiteId, testSuiteRunId]);
 
   return (
     <S.Section $justifyContent="flex-start">
-      <Link data-cy="test-header-back-button" to={`/test/${testId}`}>
+      <a data-cy="test-header-back-button" onClick={() => navigate(origin)}>
         <S.BackIcon />
-      </Link>
+      </a>
       <S.InfoContainer>
         <S.Row>
           <S.Title data-cy="test-details-name">

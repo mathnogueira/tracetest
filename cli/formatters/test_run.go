@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kubeshop/tracetest/cli/config"
 	"github.com/kubeshop/tracetest/cli/openapi"
 	"github.com/pterm/pterm"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 )
 
 type testRun struct {
-	config        config.Config
+	baseURLFn     func() string
 	colorsEnabled bool
 	padding       int
 }
@@ -29,9 +29,9 @@ func WithPadding(padding int) testRunFormatterOption {
 	}
 }
 
-func TestRun(config config.Config, colorsEnabled bool, options ...testRunFormatterOption) testRun {
+func TestRun(baseURLFn func() string, colorsEnabled bool, options ...testRunFormatterOption) testRun {
 	testRun := testRun{
-		config:        config,
+		baseURLFn:     baseURLFn,
 		colorsEnabled: colorsEnabled,
 	}
 
@@ -44,17 +44,18 @@ func TestRun(config config.Config, colorsEnabled bool, options ...testRunFormatt
 
 type TestRunOutput struct {
 	HasResults bool            `json:"-"`
+	IsFailed   bool            `json:"-"`
 	Test       openapi.Test    `json:"test"`
 	Run        openapi.TestRun `json:"testRun"`
 	RunWebURL  string          `json:"testRunWebUrl"`
 }
 
-func (f testRun) Format(output TestRunOutput) string {
-	switch CurrentOutput {
-	case Pretty:
-		return f.pretty(output)
+func (f testRun) Format(output TestRunOutput, format Output) string {
+	switch format {
 	case JSON:
 		return f.json(output)
+	case Pretty, "":
+		return f.pretty(output)
 	}
 
 	return ""
@@ -77,15 +78,24 @@ func (f testRun) json(output TestRunOutput) string {
 }
 
 func (f testRun) pretty(output TestRunOutput) string {
-	if output.Run.State != nil && *output.Run.State == "FAILED" {
-		return f.getColoredText(false, f.formatMessage("Failed to execute test: %s", *output.Run.LastErrorState))
+	if output.IsFailed {
+		return f.getColoredText(false, fmt.Sprintf("%s\n%s",
+			f.formatMessage("%s %s (%s)",
+				FAILED_TEST_ICON,
+				*output.Test.Name,
+				output.RunWebURL,
+			),
+			f.formatMessage("\tReason: %s\n",
+				*output.Run.LastErrorState,
+			),
+		))
 	}
 
 	if !output.HasResults {
 		return f.formatSuccessfulTest(output.Test, output.Run)
 	}
 
-	if output.Run.Result.AllPassed == nil || !*output.Run.Result.AllPassed {
+	if !output.Run.Result.GetAllPassed() || !output.Run.RequiredGatesResult.GetPassed() {
 		return f.formatFailedTest(output.Test, output.Run)
 	}
 
@@ -96,12 +106,16 @@ func (f testRun) formatSuccessfulTest(test openapi.Test, run openapi.TestRun) st
 	var buffer bytes.Buffer
 
 	link := f.GetRunLink(test.GetId(), run.GetId())
-	message := f.formatMessage("%s %s (%s)\n", PASSED_TEST_ICON, *test.Name, link)
+	message := f.formatMessage("%s %s (%s) - trace id: %s\n", PASSED_TEST_ICON, *test.Name, link, run.GetTraceId())
 	message = f.getColoredText(true, message)
 	buffer.WriteString(message)
 
 	for i, specResult := range run.Result.Results {
-		title := f.getTestSpecTitle(test.Specs.Specs[i].GetName(), specResult)
+		if len(test.Specs) <= i {
+			break // guard clause: this means that the server sent more results than specs
+		}
+
+		title := f.getTestSpecTitle(test.Specs[i].GetName(), specResult)
 		message := f.formatMessage("\t%s %s\n", PASSED_TEST_ICON, title)
 		message = f.getColoredText(true, message)
 		buffer.WriteString(message)
@@ -127,7 +141,7 @@ func (f testRun) formatFailedTest(test openapi.Test, run openapi.TestRun) string
 	var buffer bytes.Buffer
 
 	link := f.GetRunLink(test.GetId(), run.GetId())
-	message := f.formatMessage("%s %s (%s)\n", FAILED_TEST_ICON, *test.Name, link)
+	message := f.formatMessage("%s %s (%s) - trace id: %s\n", FAILED_TEST_ICON, test.GetName(), link, run.GetTraceId())
 	message = f.getColoredText(false, message)
 	buffer.WriteString(message)
 	for i, specResult := range run.Result.Results {
@@ -135,7 +149,6 @@ func (f testRun) formatFailedTest(test openapi.Test, run openapi.TestRun) string
 		allPassed := true
 
 		for _, result := range specResult.Results {
-
 			for _, spanResult := range result.SpanResults {
 				// meta assertions such as tracetest.selected_spans.count don't have a spanID,
 				// so they will be treated differently. To overcome them, we will place all
@@ -172,7 +185,11 @@ func (f testRun) formatFailedTest(test openapi.Test, run openapi.TestRun) string
 			}
 		}
 
-		title := f.getTestSpecTitle(test.Specs.Specs[i].GetName(), specResult)
+		if len(test.Specs) <= i {
+			break // guard clause: this means that the server sent more results than specs
+		}
+
+		title := f.getTestSpecTitle(test.Specs[i].GetName(), specResult)
 		icon := f.getStateIcon(allPassed)
 		message := f.formatMessage("\t%s %s\n", icon, title)
 		message = f.getColoredText(allPassed, message)
@@ -191,6 +208,24 @@ func (f testRun) formatFailedTest(test openapi.Test, run openapi.TestRun) string
 
 		for spanId, spanResult := range results {
 			f.generateSpanResult(&buffer, spanId, spanResult, baseLink)
+		}
+	}
+
+	if len(run.GetRequiredGatesResult().Required) > 0 {
+		buffer.WriteString("\n")
+		gatesPassed := run.RequiredGatesResult.GetPassed()
+		icon := f.getStateIcon(gatesPassed)
+		message = f.getColoredText(
+			gatesPassed,
+			f.formatMessage("\t%s %s\n", icon, "Required gates"),
+		)
+		buffer.WriteString(message)
+		for _, gateResult := range run.GetRequiredGatesResult().Required {
+			passed := slices.Index(run.RequiredGatesResult.Failed, gateResult) == -1
+			icon := f.getStateIcon(passed)
+			message := f.formatMessage("\t\t%s %s\n", icon, gateResult)
+			message = f.getColoredText(passed, message)
+			buffer.WriteString(message)
 		}
 	}
 
@@ -258,8 +293,8 @@ func (f testRun) getColoredText(passed bool, text string) string {
 	return pterm.FgRed.Sprintf(text)
 }
 
-func (f testRun) GetRunLink(testID, runID string) string {
-	return fmt.Sprintf("%s://%s/test/%s/run/%s/test", f.config.Scheme, f.config.Endpoint, testID, runID)
+func (f testRun) GetRunLink(testID string, runID int32) string {
+	return fmt.Sprintf("%s/test/%s/run/%d/test", f.baseURLFn(), testID, runID)
 }
 
 func (f testRun) getDeepLink(baseLink string, index int, spanID string) string {

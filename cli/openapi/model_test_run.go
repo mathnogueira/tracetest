@@ -20,7 +20,7 @@ var _ MappedNullable = &TestRun{}
 
 // TestRun struct for TestRun
 type TestRun struct {
-	Id      *string `json:"id,omitempty"`
+	Id      *int32  `json:"id,omitempty"`
 	TraceId *string `json:"traceId,omitempty"`
 	SpanId  *string `json:"spanId,omitempty"`
 	// Test version used when running this test run
@@ -31,21 +31,24 @@ type TestRun struct {
 	LastErrorState *string `json:"lastErrorState,omitempty"`
 	// time in seconds it took for the test to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
 	ExecutionTime *int32 `json:"executionTime,omitempty"`
-	// time in milliseconds it took for the triggering transaction to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
+	// time in milliseconds it took for the triggering testSuite to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
 	TriggerTime               *int32                `json:"triggerTime,omitempty"`
 	CreatedAt                 *time.Time            `json:"createdAt,omitempty"`
 	ServiceTriggeredAt        *time.Time            `json:"serviceTriggeredAt,omitempty"`
 	ServiceTriggerCompletedAt *time.Time            `json:"serviceTriggerCompletedAt,omitempty"`
 	ObtainedTraceAt           *time.Time            `json:"obtainedTraceAt,omitempty"`
 	CompletedAt               *time.Time            `json:"completedAt,omitempty"`
-	Environment               *Environment          `json:"environment,omitempty"`
+	VariableSet               *VariableSet          `json:"variableSet,omitempty"`
+	ResolvedTrigger           *Trigger              `json:"resolvedTrigger,omitempty"`
 	TriggerResult             *TriggerResult        `json:"triggerResult,omitempty"`
 	Trace                     *Trace                `json:"trace,omitempty"`
 	Result                    *AssertionResults     `json:"result,omitempty"`
+	Linter                    *LinterResult         `json:"linter,omitempty"`
 	Outputs                   []TestRunOutputsInner `json:"outputs,omitempty"`
+	RequiredGatesResult       *RequiredGatesResult  `json:"requiredGatesResult,omitempty"`
 	Metadata                  *map[string]string    `json:"metadata,omitempty"`
-	TransactionId             *string               `json:"transactionId,omitempty"`
-	TransactionRunId          *string               `json:"transactionRunId,omitempty"`
+	TestSuiteId               *string               `json:"testSuiteId,omitempty"`
+	TestSuiteRunId            *int32                `json:"testSuiteRunId,omitempty"`
 }
 
 // NewTestRun instantiates a new TestRun object
@@ -66,9 +69,9 @@ func NewTestRunWithDefaults() *TestRun {
 }
 
 // GetId returns the Id field value if set, zero value otherwise.
-func (o *TestRun) GetId() string {
+func (o *TestRun) GetId() int32 {
 	if o == nil || isNil(o.Id) {
-		var ret string
+		var ret int32
 		return ret
 	}
 	return *o.Id
@@ -76,7 +79,7 @@ func (o *TestRun) GetId() string {
 
 // GetIdOk returns a tuple with the Id field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *TestRun) GetIdOk() (*string, bool) {
+func (o *TestRun) GetIdOk() (*int32, bool) {
 	if o == nil || isNil(o.Id) {
 		return nil, false
 	}
@@ -92,8 +95,8 @@ func (o *TestRun) HasId() bool {
 	return false
 }
 
-// SetId gets a reference to the given string and assigns it to the Id field.
-func (o *TestRun) SetId(v string) {
+// SetId gets a reference to the given int32 and assigns it to the Id field.
+func (o *TestRun) SetId(v int32) {
 	o.Id = &v
 }
 
@@ -481,36 +484,68 @@ func (o *TestRun) SetCompletedAt(v time.Time) {
 	o.CompletedAt = &v
 }
 
-// GetEnvironment returns the Environment field value if set, zero value otherwise.
-func (o *TestRun) GetEnvironment() Environment {
-	if o == nil || isNil(o.Environment) {
-		var ret Environment
+// GetVariableSet returns the VariableSet field value if set, zero value otherwise.
+func (o *TestRun) GetVariableSet() VariableSet {
+	if o == nil || isNil(o.VariableSet) {
+		var ret VariableSet
 		return ret
 	}
-	return *o.Environment
+	return *o.VariableSet
 }
 
-// GetEnvironmentOk returns a tuple with the Environment field value if set, nil otherwise
+// GetVariableSetOk returns a tuple with the VariableSet field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *TestRun) GetEnvironmentOk() (*Environment, bool) {
-	if o == nil || isNil(o.Environment) {
+func (o *TestRun) GetVariableSetOk() (*VariableSet, bool) {
+	if o == nil || isNil(o.VariableSet) {
 		return nil, false
 	}
-	return o.Environment, true
+	return o.VariableSet, true
 }
 
-// HasEnvironment returns a boolean if a field has been set.
-func (o *TestRun) HasEnvironment() bool {
-	if o != nil && !isNil(o.Environment) {
+// HasVariableSet returns a boolean if a field has been set.
+func (o *TestRun) HasVariableSet() bool {
+	if o != nil && !isNil(o.VariableSet) {
 		return true
 	}
 
 	return false
 }
 
-// SetEnvironment gets a reference to the given Environment and assigns it to the Environment field.
-func (o *TestRun) SetEnvironment(v Environment) {
-	o.Environment = &v
+// SetVariableSet gets a reference to the given VariableSet and assigns it to the VariableSet field.
+func (o *TestRun) SetVariableSet(v VariableSet) {
+	o.VariableSet = &v
+}
+
+// GetResolvedTrigger returns the ResolvedTrigger field value if set, zero value otherwise.
+func (o *TestRun) GetResolvedTrigger() Trigger {
+	if o == nil || isNil(o.ResolvedTrigger) {
+		var ret Trigger
+		return ret
+	}
+	return *o.ResolvedTrigger
+}
+
+// GetResolvedTriggerOk returns a tuple with the ResolvedTrigger field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *TestRun) GetResolvedTriggerOk() (*Trigger, bool) {
+	if o == nil || isNil(o.ResolvedTrigger) {
+		return nil, false
+	}
+	return o.ResolvedTrigger, true
+}
+
+// HasResolvedTrigger returns a boolean if a field has been set.
+func (o *TestRun) HasResolvedTrigger() bool {
+	if o != nil && !isNil(o.ResolvedTrigger) {
+		return true
+	}
+
+	return false
+}
+
+// SetResolvedTrigger gets a reference to the given Trigger and assigns it to the ResolvedTrigger field.
+func (o *TestRun) SetResolvedTrigger(v Trigger) {
+	o.ResolvedTrigger = &v
 }
 
 // GetTriggerResult returns the TriggerResult field value if set, zero value otherwise.
@@ -609,6 +644,38 @@ func (o *TestRun) SetResult(v AssertionResults) {
 	o.Result = &v
 }
 
+// GetLinter returns the Linter field value if set, zero value otherwise.
+func (o *TestRun) GetLinter() LinterResult {
+	if o == nil || isNil(o.Linter) {
+		var ret LinterResult
+		return ret
+	}
+	return *o.Linter
+}
+
+// GetLinterOk returns a tuple with the Linter field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *TestRun) GetLinterOk() (*LinterResult, bool) {
+	if o == nil || isNil(o.Linter) {
+		return nil, false
+	}
+	return o.Linter, true
+}
+
+// HasLinter returns a boolean if a field has been set.
+func (o *TestRun) HasLinter() bool {
+	if o != nil && !isNil(o.Linter) {
+		return true
+	}
+
+	return false
+}
+
+// SetLinter gets a reference to the given LinterResult and assigns it to the Linter field.
+func (o *TestRun) SetLinter(v LinterResult) {
+	o.Linter = &v
+}
+
 // GetOutputs returns the Outputs field value if set, zero value otherwise.
 func (o *TestRun) GetOutputs() []TestRunOutputsInner {
 	if o == nil || isNil(o.Outputs) {
@@ -639,6 +706,38 @@ func (o *TestRun) HasOutputs() bool {
 // SetOutputs gets a reference to the given []TestRunOutputsInner and assigns it to the Outputs field.
 func (o *TestRun) SetOutputs(v []TestRunOutputsInner) {
 	o.Outputs = v
+}
+
+// GetRequiredGatesResult returns the RequiredGatesResult field value if set, zero value otherwise.
+func (o *TestRun) GetRequiredGatesResult() RequiredGatesResult {
+	if o == nil || isNil(o.RequiredGatesResult) {
+		var ret RequiredGatesResult
+		return ret
+	}
+	return *o.RequiredGatesResult
+}
+
+// GetRequiredGatesResultOk returns a tuple with the RequiredGatesResult field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *TestRun) GetRequiredGatesResultOk() (*RequiredGatesResult, bool) {
+	if o == nil || isNil(o.RequiredGatesResult) {
+		return nil, false
+	}
+	return o.RequiredGatesResult, true
+}
+
+// HasRequiredGatesResult returns a boolean if a field has been set.
+func (o *TestRun) HasRequiredGatesResult() bool {
+	if o != nil && !isNil(o.RequiredGatesResult) {
+		return true
+	}
+
+	return false
+}
+
+// SetRequiredGatesResult gets a reference to the given RequiredGatesResult and assigns it to the RequiredGatesResult field.
+func (o *TestRun) SetRequiredGatesResult(v RequiredGatesResult) {
+	o.RequiredGatesResult = &v
 }
 
 // GetMetadata returns the Metadata field value if set, zero value otherwise.
@@ -673,68 +772,68 @@ func (o *TestRun) SetMetadata(v map[string]string) {
 	o.Metadata = &v
 }
 
-// GetTransactionId returns the TransactionId field value if set, zero value otherwise.
-func (o *TestRun) GetTransactionId() string {
-	if o == nil || isNil(o.TransactionId) {
+// GetTestSuiteId returns the TestSuiteId field value if set, zero value otherwise.
+func (o *TestRun) GetTestSuiteId() string {
+	if o == nil || isNil(o.TestSuiteId) {
 		var ret string
 		return ret
 	}
-	return *o.TransactionId
+	return *o.TestSuiteId
 }
 
-// GetTransactionIdOk returns a tuple with the TransactionId field value if set, nil otherwise
+// GetTestSuiteIdOk returns a tuple with the TestSuiteId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *TestRun) GetTransactionIdOk() (*string, bool) {
-	if o == nil || isNil(o.TransactionId) {
+func (o *TestRun) GetTestSuiteIdOk() (*string, bool) {
+	if o == nil || isNil(o.TestSuiteId) {
 		return nil, false
 	}
-	return o.TransactionId, true
+	return o.TestSuiteId, true
 }
 
-// HasTransactionId returns a boolean if a field has been set.
-func (o *TestRun) HasTransactionId() bool {
-	if o != nil && !isNil(o.TransactionId) {
+// HasTestSuiteId returns a boolean if a field has been set.
+func (o *TestRun) HasTestSuiteId() bool {
+	if o != nil && !isNil(o.TestSuiteId) {
 		return true
 	}
 
 	return false
 }
 
-// SetTransactionId gets a reference to the given string and assigns it to the TransactionId field.
-func (o *TestRun) SetTransactionId(v string) {
-	o.TransactionId = &v
+// SetTestSuiteId gets a reference to the given string and assigns it to the TestSuiteId field.
+func (o *TestRun) SetTestSuiteId(v string) {
+	o.TestSuiteId = &v
 }
 
-// GetTransactionRunId returns the TransactionRunId field value if set, zero value otherwise.
-func (o *TestRun) GetTransactionRunId() string {
-	if o == nil || isNil(o.TransactionRunId) {
-		var ret string
+// GetTestSuiteRunId returns the TestSuiteRunId field value if set, zero value otherwise.
+func (o *TestRun) GetTestSuiteRunId() int32 {
+	if o == nil || isNil(o.TestSuiteRunId) {
+		var ret int32
 		return ret
 	}
-	return *o.TransactionRunId
+	return *o.TestSuiteRunId
 }
 
-// GetTransactionRunIdOk returns a tuple with the TransactionRunId field value if set, nil otherwise
+// GetTestSuiteRunIdOk returns a tuple with the TestSuiteRunId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *TestRun) GetTransactionRunIdOk() (*string, bool) {
-	if o == nil || isNil(o.TransactionRunId) {
+func (o *TestRun) GetTestSuiteRunIdOk() (*int32, bool) {
+	if o == nil || isNil(o.TestSuiteRunId) {
 		return nil, false
 	}
-	return o.TransactionRunId, true
+	return o.TestSuiteRunId, true
 }
 
-// HasTransactionRunId returns a boolean if a field has been set.
-func (o *TestRun) HasTransactionRunId() bool {
-	if o != nil && !isNil(o.TransactionRunId) {
+// HasTestSuiteRunId returns a boolean if a field has been set.
+func (o *TestRun) HasTestSuiteRunId() bool {
+	if o != nil && !isNil(o.TestSuiteRunId) {
 		return true
 	}
 
 	return false
 }
 
-// SetTransactionRunId gets a reference to the given string and assigns it to the TransactionRunId field.
-func (o *TestRun) SetTransactionRunId(v string) {
-	o.TransactionRunId = &v
+// SetTestSuiteRunId gets a reference to the given int32 and assigns it to the TestSuiteRunId field.
+func (o *TestRun) SetTestSuiteRunId(v int32) {
+	o.TestSuiteRunId = &v
 }
 
 func (o TestRun) MarshalJSON() ([]byte, error) {
@@ -780,8 +879,11 @@ func (o TestRun) ToMap() (map[string]interface{}, error) {
 	if !isNil(o.CompletedAt) {
 		toSerialize["completedAt"] = o.CompletedAt
 	}
-	if !isNil(o.Environment) {
-		toSerialize["environment"] = o.Environment
+	if !isNil(o.VariableSet) {
+		toSerialize["variableSet"] = o.VariableSet
+	}
+	if !isNil(o.ResolvedTrigger) {
+		toSerialize["resolvedTrigger"] = o.ResolvedTrigger
 	}
 	if !isNil(o.TriggerResult) {
 		toSerialize["triggerResult"] = o.TriggerResult
@@ -792,17 +894,23 @@ func (o TestRun) ToMap() (map[string]interface{}, error) {
 	if !isNil(o.Result) {
 		toSerialize["result"] = o.Result
 	}
+	if !isNil(o.Linter) {
+		toSerialize["linter"] = o.Linter
+	}
 	if !isNil(o.Outputs) {
 		toSerialize["outputs"] = o.Outputs
+	}
+	if !isNil(o.RequiredGatesResult) {
+		toSerialize["requiredGatesResult"] = o.RequiredGatesResult
 	}
 	if !isNil(o.Metadata) {
 		toSerialize["metadata"] = o.Metadata
 	}
-	if !isNil(o.TransactionId) {
-		toSerialize["transactionId"] = o.TransactionId
+	if !isNil(o.TestSuiteId) {
+		toSerialize["testSuiteId"] = o.TestSuiteId
 	}
-	if !isNil(o.TransactionRunId) {
-		toSerialize["transactionRunId"] = o.TransactionRunId
+	if !isNil(o.TestSuiteRunId) {
+		toSerialize["testSuiteRunId"] = o.TestSuiteRunId
 	}
 	return toSerialize, nil
 }

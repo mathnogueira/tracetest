@@ -20,10 +20,10 @@ var _ MappedNullable = &ResolveContext{}
 // ResolveContext struct for ResolveContext
 type ResolveContext struct {
 	TestId        *string `json:"testId,omitempty"`
-	RunId         *string `json:"runId,omitempty"`
+	RunId         *int32  `json:"runId,omitempty"`
 	SpanId        *string `json:"spanId,omitempty"`
 	Selector      *string `json:"selector,omitempty"`
-	EnvironmentId *string `json:"environmentId,omitempty"`
+	VariableSetId *string `json:"variableSetId,omitempty"`
 }
 
 // NewResolveContext instantiates a new ResolveContext object
@@ -76,9 +76,9 @@ func (o *ResolveContext) SetTestId(v string) {
 }
 
 // GetRunId returns the RunId field value if set, zero value otherwise.
-func (o *ResolveContext) GetRunId() string {
+func (o *ResolveContext) GetRunId() int32 {
 	if o == nil || isNil(o.RunId) {
-		var ret string
+		var ret int32
 		return ret
 	}
 	return *o.RunId
@@ -86,7 +86,7 @@ func (o *ResolveContext) GetRunId() string {
 
 // GetRunIdOk returns a tuple with the RunId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ResolveContext) GetRunIdOk() (*string, bool) {
+func (o *ResolveContext) GetRunIdOk() (*int32, bool) {
 	if o == nil || isNil(o.RunId) {
 		return nil, false
 	}
@@ -102,8 +102,8 @@ func (o *ResolveContext) HasRunId() bool {
 	return false
 }
 
-// SetRunId gets a reference to the given string and assigns it to the RunId field.
-func (o *ResolveContext) SetRunId(v string) {
+// SetRunId gets a reference to the given int32 and assigns it to the RunId field.
+func (o *ResolveContext) SetRunId(v int32) {
 	o.RunId = &v
 }
 
@@ -171,36 +171,36 @@ func (o *ResolveContext) SetSelector(v string) {
 	o.Selector = &v
 }
 
-// GetEnvironmentId returns the EnvironmentId field value if set, zero value otherwise.
-func (o *ResolveContext) GetEnvironmentId() string {
-	if o == nil || isNil(o.EnvironmentId) {
+// GetVariableSetId returns the VariableSetId field value if set, zero value otherwise.
+func (o *ResolveContext) GetVariableSetId() string {
+	if o == nil || isNil(o.VariableSetId) {
 		var ret string
 		return ret
 	}
-	return *o.EnvironmentId
+	return *o.VariableSetId
 }
 
-// GetEnvironmentIdOk returns a tuple with the EnvironmentId field value if set, nil otherwise
+// GetVariableSetIdOk returns a tuple with the VariableSetId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ResolveContext) GetEnvironmentIdOk() (*string, bool) {
-	if o == nil || isNil(o.EnvironmentId) {
+func (o *ResolveContext) GetVariableSetIdOk() (*string, bool) {
+	if o == nil || isNil(o.VariableSetId) {
 		return nil, false
 	}
-	return o.EnvironmentId, true
+	return o.VariableSetId, true
 }
 
-// HasEnvironmentId returns a boolean if a field has been set.
-func (o *ResolveContext) HasEnvironmentId() bool {
-	if o != nil && !isNil(o.EnvironmentId) {
+// HasVariableSetId returns a boolean if a field has been set.
+func (o *ResolveContext) HasVariableSetId() bool {
+	if o != nil && !isNil(o.VariableSetId) {
 		return true
 	}
 
 	return false
 }
 
-// SetEnvironmentId gets a reference to the given string and assigns it to the EnvironmentId field.
-func (o *ResolveContext) SetEnvironmentId(v string) {
-	o.EnvironmentId = &v
+// SetVariableSetId gets a reference to the given string and assigns it to the VariableSetId field.
+func (o *ResolveContext) SetVariableSetId(v string) {
+	o.VariableSetId = &v
 }
 
 func (o ResolveContext) MarshalJSON() ([]byte, error) {
@@ -225,8 +225,8 @@ func (o ResolveContext) ToMap() (map[string]interface{}, error) {
 	if !isNil(o.Selector) {
 		toSerialize["selector"] = o.Selector
 	}
-	if !isNil(o.EnvironmentId) {
-		toSerialize["environmentId"] = o.EnvironmentId
+	if !isNil(o.VariableSetId) {
+		toSerialize["variableSetId"] = o.VariableSetId
 	}
 	return toSerialize, nil
 }

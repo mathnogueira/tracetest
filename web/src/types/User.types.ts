@@ -1,9 +1,10 @@
 export interface IUserPreferences {
   lang: string;
-  environmentId: string;
+  variableSetId: string;
   initConfigSetup: boolean;
   initConfigSetupFromTest: boolean;
   showGuidedTourNotification: boolean;
+  showAttributeTooltip: boolean;
 }
 
 export type TUserPreferenceKey = keyof IUserPreferences;
@@ -11,4 +12,5 @@ export type TUserPreferenceValue<K extends TUserPreferenceKey = TUserPreferenceK
 
 export interface IUserState {
   preferences: IUserPreferences;
+  runOriginPath: string;
 }

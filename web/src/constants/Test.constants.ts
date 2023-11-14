@@ -9,6 +9,7 @@ export enum TriggerTypes {
   http = 'http',
   grpc = 'grpc',
   traceid = 'traceid',
+  kafka = 'kafka',
 }
 
 export enum SortBy {
@@ -46,9 +47,9 @@ export const sortOptions = [
 ] as const;
 
 export enum TracetestApiTags {
-  ENVIRONMENT = 'environment',
-  TRANSACTION = 'transaction',
-  TRANSACTION_RUN = 'transactionRun',
+  VARIABLE_SET = 'variableSet',
+  TESTSUITE = 'testSuite',
+  TESTSUITE_RUN = 'testSuiteRun',
   TEST = 'test',
   TEST_DEFINITION = 'testDefinition',
   TEST_RUN = 'testRun',
@@ -58,3 +59,5 @@ export enum TracetestApiTags {
   DATA_STORE = 'dataStore',
   SETTING = 'setting',
 }
+
+export const TracetestApiTagsList = Object.values(TracetestApiTags);

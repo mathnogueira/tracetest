@@ -1,6 +1,29 @@
 openapi: 3.0.0
 components:
   schemas:
+
+    TestResourceList:
+      type: object
+      properties:
+        count:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestResource"
+
+    TestResource:
+      type: object
+      description: "Represents a test structured into the Resources format."
+      properties:
+        type:
+          type: string
+          description: "Represents the type of this resource. It should always be set as 'Test'."
+          enum:
+            - Test
+        spec:
+          $ref: "#/components/schemas/Test"
+
     Test:
       type: object
       properties:
@@ -17,10 +40,12 @@ components:
         createdAt:
           type: string
           format: date-time
-        serviceUnderTest:
+        trigger:
           $ref: "./triggers.yaml#/components/schemas/Trigger"
         specs:
-          $ref: "#/components/schemas/TestSpecs"
+          type: array
+          items:
+            $ref: "#/components/schemas/TestSpec"
           description: specification of assertions that are going to be made
         outputs:
           description: define test outputs, in a key/value format. The value is processed as an expression
@@ -45,6 +70,8 @@ components:
         name:
           type: string
         selector:
+          type: string
+        selectorParsed:
           $ref: "#/components/schemas/Selector"
         value:
           type: string
@@ -69,6 +96,9 @@ components:
             fails:
               type: integer
               readOnly: true
+            analyzerScore:
+              type: integer
+              readOnly: true
 
     TestSpecs:
       type: object
@@ -76,17 +106,8 @@ components:
         specs:
           type: array
           items:
-            type: object
-            properties:
-              name:
-                type: string
-                nullable: true
-              selector:
-                $ref: "#/components/schemas/Selector"
-              assertions:
-                type: array
-                items:
-                  type: string
+            $ref: "#/components/schemas/TestSpec"
+
       example:
         specs:
           - selector:
@@ -104,11 +125,25 @@ components:
                 comparator: "="
                 expected: "200"
 
+    TestSpec:
+      type: object
+      properties:
+        name:
+          type: string
+        selector:
+          type: string
+        selectorParsed:
+          $ref: "#/components/schemas/Selector"
+        assertions:
+          type: array
+          items:
+            type: string
+
     TestRun:
       type: object
       properties:
         id:
-          type: string
+          type: integer
           readOnly: true
         traceId:
           type: string
@@ -127,8 +162,13 @@ components:
               EXECUTING,
               AWAITING_TRACE,
               AWAITING_TEST_RESULTS,
+              ANALYZING_TRACE,
+              ANALYZING_ERROR,
               FINISHED,
-              FAILED,
+              STOPPED,
+              TRIGGER_FAILED,
+              TRACE_FAILED,
+              ASSERTION_FAILED,
             ]
           description: Current execution state
         lastErrorState:
@@ -139,7 +179,7 @@ components:
           description: time in seconds it took for the test to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
         triggerTime:
           type: integer
-          description: time in milliseconds it took for the triggering transaction to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
+          description: time in milliseconds it took for the triggering testSuite to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
         createdAt:
           type: string
           format: date-time
@@ -155,14 +195,18 @@ components:
         completedAt:
           type: string
           format: date-time
-        environment:
-          $ref: "./environments.yaml#/components/schemas/Environment"
+        variableSet:
+          $ref: "./variableSets.yaml#/components/schemas/VariableSet"
+        resolvedTrigger:
+          $ref: "./triggers.yaml#/components/schemas/Trigger"
         triggerResult:
           $ref: "./triggers.yaml#/components/schemas/TriggerResult"
         trace:
           $ref: "./trace.yaml#/components/schemas/Trace"
         result:
           $ref: "#/components/schemas/AssertionResults"
+        linter:
+          $ref: "linters.yaml#/components/schemas/LinterResult"
         outputs:
           type: array
           items:
@@ -174,15 +218,19 @@ components:
                 type: string
               value:
                 type: string
+              error:
+                type: string
+        requiredGatesResult:
+          $ref: "./testRunner.yaml#/components/schemas/RequiredGatesResult"
 
         metadata:
           type: object
           additionalProperties:
             type: string
-        transactionId:
+        testSuiteId:
           type: string
-        transactionRunId:
-          type: string
+        testSuiteRunId:
+          type: integer
 
     RunInformation:
       type: object
@@ -192,12 +240,17 @@ components:
           nullable: true
           additionalProperties:
             type: string
-        environmentId:
+        variableSetId:
           type: string
         variables:
           type: array
           items:
-            $ref: "./environments.yaml#/components/schemas/EnvironmentValue"
+            $ref: "./variableSets.yaml#/components/schemas/VariableSetValue"
+        requiredGates:
+          type: array
+          nullable: true
+          items:
+            $ref: "./testRunner.yaml#/components/schemas/SupportedGates"
 
     AssertionResults:
       type: object

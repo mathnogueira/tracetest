@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	dc "github.com/fluidtruck/deepcopy"
-	"github.com/kubeshop/tracetest/server/id"
-	"github.com/kubeshop/tracetest/server/model"
+	"github.com/kubeshop/tracetest/server/pkg/id"
+	"github.com/kubeshop/tracetest/server/testsuite"
 )
 
-type Transaction struct {
+type TestSuite struct {
 	ID          string            `mapstructure:"id"`
 	Name        string            `mapstructure:"name"`
 	Description string            `mapstructure:"description" yaml:",omitempty"`
@@ -16,23 +16,20 @@ type Transaction struct {
 	Steps       []string          `mapstructure:"steps"`
 }
 
-func (t Transaction) Model() model.Transaction {
-	mt := model.Transaction{}
+func (t TestSuite) Model() testsuite.TestSuite {
+	mt := testsuite.TestSuite{}
 	dc.DeepCopy(t, &mt)
-	steps := make([]model.Test, 0, len(t.Steps))
+	mt.StepIDs = make([]id.ID, 0, len(t.Steps))
 	for _, stepID := range t.Steps {
-		steps = append(steps, model.Test{
-			ID: id.ID(stepID),
-		})
+		mt.StepIDs = append(mt.StepIDs, id.ID(stepID))
 	}
-	mt.Steps = steps
 
 	return mt
 }
 
-func (t Transaction) Validate() error {
+func (t TestSuite) Validate() error {
 	if t.Name == "" {
-		return fmt.Errorf("transaction name cannot be empty")
+		return fmt.Errorf("suite name cannot be empty")
 	}
 
 	return nil

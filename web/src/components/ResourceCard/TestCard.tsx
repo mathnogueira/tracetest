@@ -1,7 +1,8 @@
 import {DownOutlined, RightOutlined} from '@ant-design/icons';
 import {useMemo} from 'react';
+import CreateButton from 'components/CreateButton';
 import TestRunCard from 'components/RunCard/TestRunCard';
-import {useLazyGetRunListQuery} from 'redux/apis/TraceTest.api';
+import TracetestAPI from 'redux/apis/Tracetest';
 import {ResourceType} from 'types/Resource.type';
 import Test from 'models/Test.model';
 import TestRun from 'models/TestRun.model';
@@ -10,6 +11,8 @@ import ResourceCardActions from './ResourceCardActions';
 import ResourceCardRuns from './ResourceCardRuns';
 import ResourceCardSummary from './ResourceCardSummary';
 import useRuns from './useRuns';
+
+const {useLazyGetRunListQuery} = TracetestAPI.instance;
 
 interface IProps {
   onEdit(id: string, lastRunId: number, type: ResourceType): void;
@@ -45,24 +48,24 @@ const TestCard = ({onEdit, onDelete, onRun, onViewAll, test}: IProps) => {
 
         <ResourceCardSummary summary={test.summary} />
 
-        <S.Row>
-          <S.RunButton
-            type="primary"
-            ghost
+        <S.Row $gap={12}>
+          <CreateButton
             data-cy={`test-run-button-${test.id}`}
+            ghost
             onClick={event => {
               event.stopPropagation();
               onRun(test, ResourceType.Test);
             }}
+            type="primary"
           >
             Run
-          </S.RunButton>
+          </CreateButton>
           <ResourceCardActions
             id={test.id}
             shouldEdit={shouldEdit}
             onDelete={() => onDelete(test.id, test.name, ResourceType.Test)}
             onEdit={() => onEdit(test.id, lastRunId, ResourceType.Test)}
-           />
+          />
         </S.Row>
       </S.TestContainer>
 

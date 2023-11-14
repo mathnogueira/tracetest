@@ -1,6 +1,7 @@
 import {DeleteOutlined} from '@ant-design/icons';
 import {Button, Typography} from 'antd';
 import styled from 'styled-components';
+import RequestDetailsHeadersInput from 'components/CreateTestPlugins/Rest/steps/RequestDetails/RequestDetailsHeadersInput';
 
 export const FormContainer = styled.div`
   display: grid;
@@ -55,7 +56,10 @@ export const FormColumn = styled.div`
 export const Title = styled(Typography.Title)`
   && {
     font-size: ${({theme}) => theme.size.md};
-    font-weight: 700;
     margin: 0;
   }
+`;
+
+export const HeadersInput = styled(RequestDetailsHeadersInput)`
+  max-width: 1000px;
 `;

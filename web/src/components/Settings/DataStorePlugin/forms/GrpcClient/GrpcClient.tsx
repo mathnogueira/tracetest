@@ -1,10 +1,13 @@
 import {Checkbox, Col, Form, Input, Row, Select, Space, Switch} from 'antd';
-
-import RequestDetailsHeadersInput from 'components/CreateTestPlugins/Rest/steps/RequestDetails/RequestDetailsHeadersInput';
-import {SupportedDataStoresToDefaultEndpoint} from 'constants/DataStore.constants';
+import {useCallback} from 'react';
+import {SupportedDataStoresToDefaultEndpoint, SupportedDataStoresToName} from 'constants/DataStore.constants';
+import {useDataStore} from 'providers/DataStore/DataStore.provider';
+import DataStoreService from 'services/DataStore.service';
 import {SupportedDataStores, TDraftDataStore} from 'types/DataStore.types';
+import * as FS from '../../DataStorePluginForm.styled';
 import * as S from './GrcpClient.styled';
 import GrpcClientSecure from './GrpcClientSecure';
+import DataStoreDocsBanner from '../../../DataStoreDocsBanner/DataStoreDocsBanner';
 
 const COMPRESSION_LIST = [
   {name: 'none', value: 'none'},
@@ -22,9 +25,20 @@ const GrpcClient = () => {
   const dataStoreType = form.getFieldValue('dataStoreType') as SupportedDataStores;
   const baseName = ['dataStore', dataStoreType, 'grpc'];
   const insecureValue = Form.useWatch([...baseName, 'tls', 'insecure'], form) ?? true;
+  const {onIsFormValid} = useDataStore();
+
+  const onValidation = useCallback(
+    async (draft: TDraftDataStore) => {
+      const isValid = await DataStoreService.validateDraft(draft);
+      onIsFormValid(isValid);
+    },
+    [onIsFormValid]
+  );
 
   return (
     <>
+      <FS.Title>Provide the connection info for {SupportedDataStoresToName[dataStoreType]}</FS.Title>
+      <DataStoreDocsBanner dataStoreType={dataStoreType} />
       <Row gutter={[16, 16]}>
         <Col span={12}>
           <Form.Item
@@ -78,7 +92,7 @@ const GrpcClient = () => {
 
       <Row gutter={[16, 16]}>
         <Col span={12}>
-          <RequestDetailsHeadersInput initialValue={HEADER_DEFAULT_VALUES} name={[...baseName, 'rawHeaders']} />
+          <FS.HeadersInput initialValue={HEADER_DEFAULT_VALUES} name={[...baseName, 'rawHeaders']} />
         </Col>
       </Row>
 
@@ -92,6 +106,7 @@ const GrpcClient = () => {
                 [dataStoreType]: {grpc: {tls: {insecure: !checked}}},
               },
             });
+            onValidation(form.getFieldsValue());
           }}
           checked={!insecureValue}
         />{' '}

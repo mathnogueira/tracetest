@@ -12,11 +12,13 @@ import {
 } from 'redux/slices/CreateTest.slice';
 import {useAppDispatch, useAppSelector} from 'redux/hooks';
 import CreateTestSelectors from 'selectors/CreateTest.selectors';
-import {useCreateTestMutation} from 'redux/apis/TraceTest.api';
+import TracetestAPI from 'redux/apis/Tracetest';
 import {ICreateTestState, TDraftTest} from 'types/Test.types';
 import TestService from 'services/Test.service';
 import {Plugins} from 'constants/Plugins.constants';
 import useTestCrud from '../Test/hooks/useTestCrud';
+
+const {useCreateTestMutation} = TracetestAPI.instance;
 
 interface IContext extends ICreateTestState {
   activeStep: string;
@@ -71,7 +73,7 @@ const CreateTestProvider = ({children}: IProps) => {
     async (draft: TDraftTest) => {
       const rawTest = await TestService.getRequest(plugin, draft);
       const test = await createTest(rawTest).unwrap();
-      runTest(test);
+      runTest({test});
     },
     [createTest, plugin, runTest]
   );

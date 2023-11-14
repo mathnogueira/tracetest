@@ -20,7 +20,6 @@ export const Title = styled(Typography.Title)`
   && {
     font-size: ${({theme}) => theme.size.lg};
     margin: 0;
-    font-weight: 700;
   }
 `;
 
@@ -42,22 +41,17 @@ export const TabsContainer = styled.div`
 
 export const StatusText = styled(Typography.Text)`
   && {
-    margin-left: 14px;
     font-size: ${({theme}) => theme.size.md};
   }
 `;
 
 export const LoadingResponseBody = styled.div`
-  margin-top: 25px;
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
   justify-items: center;
-  gap: 8px;
-  height: 100px;
+  gap: 16px;
   padding: 0.4em 0.6em;
-  background: ${({theme}) => theme.color.background};
-  border: ${({theme}) => `1px solid ${theme.color.borderLight}`};
-  font-size: ${({theme}) => theme.size.sm};
 `;
 
 export const TextHolder = styled.div<{$width?: number}>`
@@ -71,7 +65,7 @@ export const TextHolder = styled.div<{$width?: number}>`
   }
 
   animation: skeleton-loading 1s linear infinite alternate;
-  height: 8px;
+  height: 16px;
   border-radius: 2px;
   width: ${({$width = 100}) => $width}%;
 `;
@@ -88,7 +82,7 @@ export const Text = styled(Typography.Text)`
 
 export const StatusSpan = styled.span<{$isError: boolean}>`
   color: ${({$isError, theme}) => ($isError ? theme.color.error : theme.color.success)};
-  font-weight: 700;
+  font-weight: 600;
 `;
 
 export const HeadersList = styled.div`
@@ -106,7 +100,7 @@ export const Actions = styled.div`
   gap: 10px;
 `;
 
-export const ResponseEnvironmentContainer = styled.div`
+export const ResponseVarsContainer = styled.div`
   padding: 16px 0;
 `;
 
@@ -132,3 +126,18 @@ export const EmptyText = styled(Typography.Text)`
 `;
 
 export const EmptyTitle = styled(Typography.Title).attrs({level: 3})``;
+
+export const ResponseBodyContainer = styled.div`
+  display: grid;
+  grid-template-columns: 95% 5%;
+  width: 100%;
+`;
+
+export const ResponseBodyContent = styled.div`
+  flex: 1;
+  margin-top: 16px;
+`;
+
+export const ResponseBodyActions = styled.div`
+  margin: 16px 0 0 4px;
+`;

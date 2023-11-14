@@ -9,7 +9,15 @@ var (
 	FrontendKey = ""
 )
 
-func newSegmentTracker(hostname, serverID, appVersion, env string) Tracker {
+func newSegmentTracker(hostname, serverID, appVersion, env, secretKey, frontendKey string) Tracker {
+	if secretKey != "" {
+		SecretKey = secretKey
+	}
+
+	if frontendKey != "" {
+		FrontendKey = frontendKey
+	}
+
 	client, _ := segment.NewWithConfig(SecretKey, segment.Config{
 		BatchSize: 1,
 	})
@@ -63,9 +71,14 @@ func (t segmentTracker) Track(name string, props map[string]string) error {
 		p = p.Set(k, v)
 	}
 
+	userID := t.serverID
+	if p["user_id"] != nil {
+		userID = p["user_id"].(string)
+	}
+
 	return t.client.Enqueue(segment.Track{
 		Event:      name,
-		UserId:     t.serverID,
+		UserId:     userID,
 		Properties: p,
 		Context: &segment.Context{
 			Direct: true,

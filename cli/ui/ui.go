@@ -3,8 +3,9 @@ package ui
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 
-	"github.com/kubeshop/tracetest/cli/config"
 	"github.com/pterm/pterm"
 	"github.com/pterm/pterm/putils"
 )
@@ -12,7 +13,7 @@ import (
 var DefaultUI UI = &ptermUI{}
 
 type UI interface {
-	Banner()
+	Banner(version string)
 
 	Panic(error)
 	Exit(string)
@@ -21,14 +22,17 @@ type UI interface {
 	Warning(string)
 	Info(string)
 	Success(string)
+	Finish()
 
 	Println(string)
 	Title(string)
+	OpenBrowser(string) error
 
 	Green(string) string
 	Red(string) string
 
 	Confirm(prompt string, defaultValue bool) bool
+	Enter(msg string) bool
 	Select(prompt string, options []Option, defaultIndex int) (selected Option)
 	TextInput(msg, defaultValue string) string
 }
@@ -40,14 +44,14 @@ type Option struct {
 
 type ptermUI struct{}
 
-func (ui ptermUI) Banner() {
+func (ui ptermUI) Banner(version string) {
 	pterm.Print("\n\n")
 
 	pterm.DefaultBigText.
 		WithLetters(putils.LettersFromString("TraceTest")).
 		Render()
 
-	pterm.Print(fmt.Sprintf("Version: %s", config.Version))
+	pterm.Print(fmt.Sprintf("Version: %s", version))
 
 	pterm.Print("\n\n")
 
@@ -55,6 +59,10 @@ func (ui ptermUI) Banner() {
 
 func (ui ptermUI) Panic(err error) {
 	pterm.Error.WithFatal(true).Println(err)
+}
+
+func (ui ptermUI) Finish() {
+	os.Exit(0)
 }
 
 func (ui ptermUI) Exit(msg string) {
@@ -103,6 +111,25 @@ func (ui ptermUI) Confirm(msg string, defaultValue bool) bool {
 		ConfirmStyle: &pterm.ThemeDefault.SuccessMessageStyle,
 		RejectText:   "No",
 		RejectStyle:  &pterm.ThemeDefault.ErrorMessageStyle,
+		SuffixStyle:  &pterm.ThemeDefault.SecondaryStyle,
+	}).
+		Show()
+	if err != nil {
+		ui.Panic(err)
+	}
+
+	return confirm
+}
+
+func (ui ptermUI) Enter(msg string) bool {
+	confirm, err := (&pterm.InteractiveConfirmPrinter{
+		DefaultText:  msg,
+		DefaultValue: true,
+		TextStyle:    &pterm.ThemeDefault.DefaultText,
+		ConfirmText:  "Enter",
+		RejectText:   "Cancel",
+		RejectStyle:  &pterm.ThemeDefault.ErrorMessageStyle,
+		ConfirmStyle: &pterm.ThemeDefault.SuccessMessageStyle,
 		SuffixStyle:  &pterm.ThemeDefault.SecondaryStyle,
 	}).
 		Show()
@@ -165,4 +192,17 @@ func (ui ptermUI) Select(prompt string, options []Option, defaultIndex int) (sel
 
 	selectedIx := lookupMap[selectedText]
 	return options[selectedIx]
+}
+
+func (ui ptermUI) OpenBrowser(u string) error {
+	switch runtime.GOOS {
+	case "linux":
+		return exec.Command("xdg-open", u).Start()
+	case "windows":
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
+	case "darwin":
+		return exec.Command("open", u).Start()
+	default:
+		return fmt.Errorf("unsupported platform")
+	}
 }

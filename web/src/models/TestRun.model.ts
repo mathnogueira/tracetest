@@ -1,10 +1,13 @@
+import {TestState} from 'constants/TestRun.constants';
+import {Model, Modify, TTestSchemas, TTriggerSchemas} from 'types/Common.types';
 import {TTestRunState} from 'types/TestRun.types';
-import {Model, Modify, TTestSchemas, TTriggerSchemas} from '../types/Common.types';
 import AssertionResults, {TRawAssertionResults} from './AssertionResults.model';
-import Environment from './Environment.model';
+import VariableSet from './VariableSet.model';
+import LinterResult from './LinterResult.model';
 import TestRunOutput from './TestRunOutput.model';
 import Trace from './Trace.model';
 import TriggerResult from './TriggerResult.model';
+import RequiredGatesResult from './RequiredGatesResult.model';
 
 export type TRawTestRun = Modify<
   TTestSchemas['TestRun'],
@@ -24,10 +27,14 @@ type TestRun = Model<
     triggerTime: number;
     lastErrorState?: string;
     trigger?: TTriggerSchemas['Trigger'];
+    resolvedTrigger?: TTriggerSchemas['Trigger'];
     triggerResult?: TriggerResult;
     outputs?: TestRunOutput[];
-    environment?: Environment;
+    variableSet?: VariableSet;
     state: TTestRunState;
+    linter: LinterResult;
+    requiredGatesResult: RequiredGatesResult;
+    testSuiteRunId: number;
   }
 >;
 
@@ -55,8 +62,37 @@ const getTestResultCount = (
   }).length;
 };
 
+export function isRunStateFinished(state: TTestRunState) {
+  return (
+    [
+      TestState.FINISHED,
+      TestState.STOPPED,
+      TestState.TRIGGER_FAILED,
+      TestState.TRACE_FAILED,
+      TestState.ASSERTION_FAILED,
+      TestState.ANALYZING_ERROR,
+    ] as string[]
+  ).includes(state);
+}
+
+export function isRunStateFailed(state: TTestRunState) {
+  return ([TestState.TRIGGER_FAILED, TestState.TRACE_FAILED, TestState.ASSERTION_FAILED] as string[]).includes(state);
+}
+
+export function isRunStateSucceeded(state: TTestRunState) {
+  return state === TestState.FINISHED;
+}
+
+export function isRunStateStopped(state: TTestRunState) {
+  return state === TestState.STOPPED;
+}
+
+export function isRunStateAnalyzingError(state: TTestRunState) {
+  return state === TestState.ANALYZING_ERROR;
+}
+
 const TestRun = ({
-  id = '',
+  id = 0,
   traceId = '',
   spanId = '',
   state = 'CREATED',
@@ -74,9 +110,11 @@ const TestRun = ({
   serviceTriggeredAt = '',
   metadata = {},
   outputs = [],
-  environment = {},
-  transactionId = '',
-  transactionRunId = '',
+  variableSet = {},
+  testSuiteId = '',
+  testSuiteRunId = 0,
+  linter = {},
+  requiredGatesResult = {required: [], failed: [], passed: true},
 }: TRawTestRun): TestRun => {
   return {
     obtainedTraceAt,
@@ -100,9 +138,11 @@ const TestRun = ({
     passedAssertionCount: getTestResultCount(result, 'passed'),
     metadata,
     outputs: outputs?.map(rawOutput => TestRunOutput(rawOutput)),
-    environment: Environment(environment),
-    transactionId,
-    transactionRunId,
+    variableSet: VariableSet.fromRun(variableSet),
+    testSuiteId,
+    testSuiteRunId: testSuiteRunId ? Number(testSuiteRunId) : 0,
+    linter: LinterResult(linter),
+    requiredGatesResult: RequiredGatesResult(requiredGatesResult),
   };
 };
 

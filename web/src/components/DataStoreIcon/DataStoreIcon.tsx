@@ -1,5 +1,6 @@
 import {useTheme} from 'styled-components';
 import {SupportedDataStores} from 'types/DataStore.types';
+import Agent from './Icons/Agent';
 import Elastic from './Icons/Elastic';
 import Jaeger from './Icons/Jaeger';
 import Lightstep from './Icons/Lightstep';
@@ -10,8 +11,13 @@ import Otlp from './Icons/Otlp';
 import SignalFx from './Icons/SignalFx';
 import Tempo from './Icons/Tempo';
 import AWSXRay from './Icons/AwsXRay';
+import Honeycomb from './Icons/Honeycomb';
+import AzureAppInsights from './Icons/AzureAppInsights';
+import Signoz from './Icons/Signoz';
+import Dynatrace from './Icons/Dynatrace';
 
 const iconMap = {
+  [SupportedDataStores.Agent]: Agent,
   [SupportedDataStores.JAEGER]: Jaeger,
   [SupportedDataStores.SignalFX]: SignalFx,
   [SupportedDataStores.ElasticApm]: Elastic,
@@ -22,6 +28,10 @@ const iconMap = {
   [SupportedDataStores.Lightstep]: Lightstep,
   [SupportedDataStores.Datadog]: Datadog,
   [SupportedDataStores.AWSXRay]: AWSXRay,
+  [SupportedDataStores.Honeycomb]: Honeycomb,
+  [SupportedDataStores.AzureAppInsights]: AzureAppInsights,
+  [SupportedDataStores.Signoz]: Signoz,
+  [SupportedDataStores.Dynatrace]: Dynatrace,
 } as const;
 
 interface IProps {

@@ -14,7 +14,7 @@ interface IProps {
   fields: FormListFieldData[];
   form: FormInstance<IValues>;
   remove(name: number): void;
-  runId: string;
+  runId: number;
   testId: string;
   spanIdList: string[];
 }
@@ -24,7 +24,7 @@ const AssertionCheckList = ({form, fields, add, remove, attributeList, runId, te
 
   return (
     <S.AssertionsContainer>
-      {fields.map(({key, name, ...field}, index) => {
+      {fields.map(({key, name, ...field}) => {
         return (
           <AssertionCheck
             key={key}
@@ -33,7 +33,6 @@ const AssertionCheckList = ({form, fields, add, remove, attributeList, runId, te
             field={field}
             attributeList={attributeList}
             name={name}
-            index={index}
             reference={reference}
             runId={runId}
             testId={testId}

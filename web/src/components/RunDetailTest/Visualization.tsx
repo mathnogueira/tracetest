@@ -2,27 +2,31 @@ import {useCallback, useEffect} from 'react';
 import {Node, NodeChange} from 'react-flow-renderer';
 
 import {VisualizationType} from 'components/RunDetailTrace/RunDetailTrace';
-import SkeletonDiagram from 'components/SkeletonDiagram';
+import RunEvents from 'components/RunEvents';
 import {useTestSpecForm} from 'components/TestSpecForm/TestSpecForm.provider';
 import DAG from 'components/Visualization/components/DAG';
 import Timeline from 'components/Visualization/components/Timeline';
-import {TestState} from 'constants/TestRun.constants';
+import {TestRunStage} from 'constants/TestRunEvents.constants';
+import {NodeTypesEnum} from 'constants/Visualization.constants';
+import Span from 'models/Span.model';
+import TestRunEvent from 'models/TestRunEvent.model';
 import {useSpan} from 'providers/Span/Span.provider';
 import {useAppDispatch, useAppSelector} from 'redux/hooks';
 import {initNodes, onNodesChange as onNodesChangeAction} from 'redux/slices/DAG.slice';
 import DAGSelectors from 'selectors/DAG.selectors';
 import TraceAnalyticsService from 'services/Analytics/TestRunAnalytics.service';
 import TraceDiagramAnalyticsService from 'services/Analytics/TraceDiagramAnalytics.service';
+import TestRunService from 'services/TestRun.service';
 import {TTestRunState} from 'types/TestRun.types';
-import Span from 'models/Span.model';
 
 export interface IProps {
+  runEvents: TestRunEvent[];
   runState: TTestRunState;
   spans: Span[];
   type: VisualizationType;
 }
 
-const Visualization = ({runState, spans, type}: IProps) => {
+const Visualization = ({runEvents, runState, spans, type}: IProps) => {
   const dispatch = useAppDispatch();
   const edges = useAppSelector(DAGSelectors.selectEdges);
   const nodes = useAppSelector(DAGSelectors.selectNodes);
@@ -66,8 +70,8 @@ const Visualization = ({runState, spans, type}: IProps) => {
     [onSelectSpan, onSetFocusedSpan]
   );
 
-  if (runState !== TestState.FINISHED) {
-    return <SkeletonDiagram />;
+  if (TestRunService.shouldDisplayTraceEvents(runState, spans.length)) {
+    return <RunEvents events={runEvents} stage={TestRunStage.Trace} state={runState} />;
   }
 
   return type === VisualizationType.Dag ? (
@@ -85,6 +89,7 @@ const Visualization = ({runState, spans, type}: IProps) => {
     <Timeline
       isMatchedMode={matchedSpans.length > 0 || isOpen}
       matchedSpans={matchedSpans}
+      nodeType={NodeTypesEnum.TestSpan}
       onNavigateToSpan={onNavigateToSpan}
       onNodeClick={onNodeClickTimeline}
       selectedSpan={selectedSpan?.id ?? ''}

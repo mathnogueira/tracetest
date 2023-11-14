@@ -1,11 +1,9 @@
-import {Space} from 'antd';
-import {Link} from 'react-router-dom';
-
 import Logo from 'assets/Logo.svg';
-import EnvironmentSelector from 'components/EnvironmentSelector';
+import Link from 'components/Link';
 import NoTracingPopover from 'components/NoTracingPopover';
+import {withCustomization} from 'providers/Customization';
 import * as S from './Header.styled';
-import Menu from './Menu';
+import HelpMenu from './HelpMenu';
 
 interface IProps {
   hasLogo?: boolean;
@@ -22,12 +20,11 @@ const Header = ({hasLogo = false, isNoTracingMode}: IProps) => (
       )}
     </div>
 
-    <Space>
+    <S.MenuContainer>
       {isNoTracingMode && <NoTracingPopover />}
-      <EnvironmentSelector />
-      <Menu />
-    </Space>
+      <HelpMenu />
+    </S.MenuContainer>
   </S.Header>
 );
 
-export default Header;
+export default withCustomization(Header, 'header');

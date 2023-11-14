@@ -56,6 +56,18 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      # fix for this issue: https://github.com/goreleaser/goreleaser/issues/1163
+      - name: Configure Goreleaser Tags
+        shell: bash
+        run: |
+          prevTag=$(git describe --tags --abbrev=0 v0.11.1^ --exclude='*-rc.*')
+          echo "GORELEASER_CURRENT_TAG=${{ github.ref_name}}" >> $GITHUB_ENV
+          echo "GORELEASER_PREVIOUS_TAG="$prevTag >> $GITHUB_ENV
+      - name: debug info
+        shell: bash
+        run: |
+          echo "GORELEASER_CURRENT_TAG: "$GORELEASER_CURRENT_TAG
+          echo "GORELEASER_PREVIOUS_TAG: "$GORELEASER_PREVIOUS_TAG
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
       - name: Login to DockerHub
@@ -67,9 +79,9 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version-file: 'go.work'
+          go-version-file: "go.mod"
           cache: true
-          cache-dependency-path: go.work
+          cache-dependency-path: "go.mod"
 
       - uses: actions/download-artifact@v3
         with:
@@ -81,14 +93,14 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         with:
           distribution: goreleaser-pro
-          version: v1.16.1
+          version: v1.21.2
           args: release --clean
         env:
           VERSION: ${{ github.ref_name}}
           TRACETEST_ENV: main
           ANALYTICS_FE_KEY: ${{ secrets.ANALYTICS_FE_KEY }}
           ANALYTICS_BE_KEY: ${{ secrets.ANALYTICS_BE_KEY }}
-
+          TRACETEST_DEFAULT_CLOUD_ENDPOINT: ${{ secrets.TRACETEST_DEFAULT_CLOUD_ENDPOINT }}
 
   helm_chart_version_bump:
       name: "Trigger Helm chart appVersion update"
@@ -201,9 +213,7 @@ jobs:
           cd scripts/choco
           choco pack
 
-          choco apikey --key $CHOCOLATEY_API_KEY --source $CHOCOLATEY_REPO
-          choco push tracetest.$PACKAGE_VERSION.nupkg --source $CHOCOLATEY_REPO
+          choco push --source https://chocolatey.kubeshop.io/chocolatey --api-key $env:CHOCOLATEY_API_KEY tracetest.$env:PACKAGE_VERSION.nupkg
         env:
           CHOCOLATEY_API_KEY: ${{ secrets.COMMOM_CHOCO_API_KEY }}
-          CHOCOLATEY_REPO: ${{ secrets.CHOCOLATEY_REPO }}
           PACKAGE_VERSION: ${{ steps.cliDownload.outputs.version }}

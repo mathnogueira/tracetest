@@ -12,13 +12,13 @@ package openapi
 type ResolveContext struct {
 	TestId string `json:"testId,omitempty"`
 
-	RunId string `json:"runId,omitempty"`
+	RunId int32 `json:"runId,omitempty"`
 
 	SpanId string `json:"spanId,omitempty"`
 
 	Selector string `json:"selector,omitempty"`
 
-	EnvironmentId string `json:"environmentId,omitempty"`
+	VariableSetId string `json:"variableSetId,omitempty"`
 }
 
 // AssertResolveContextRequired checks if the required fields are not zero-ed

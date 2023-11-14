@@ -1,20 +1,24 @@
 import Demo from 'models/Demo.model';
+import SettingService from 'services/Setting.service';
+import {SupportedDemos} from 'types/Settings.types';
 import {HTTP_METHOD, SupportedPlugins} from './Common.constants';
-import pokeshopProtoData from '../assets/pokeshop.proto.json';
-import otelProtoData from '../assets/otel-demo.proto.json';
-import pokeshopPostmanData from '../assets/pokeshop.postman_collection.json';
-import SettingService from '../services/Setting.service';
-import {SupportedDemos} from '../types/Settings.types';
+import pokeshopProtoData from './demos/pokeshop.proto';
+import otelDemoProtoData from './demos/otel-demo.proto';
+import pokeshopPostmanData from './demos/pokeshop.postman';
 
 const pokeshopProtoFile = new File([pokeshopProtoData?.proto], 'pokeshop.proto');
-const otelProtoFile = new File([otelProtoData?.proto], 'otel-demo.proto');
+const otelProtoFile = new File([otelDemoProtoData?.proto], 'otel-demo.proto');
 const pokeshopPostmanFile = new File([JSON.stringify(pokeshopPostmanData)], 'pokeshop.postman_collection.json');
 
 const userId = '2491f868-88f1-4345-8836-d5d8511a9f83';
 
 export function getPokeshopDemo(demoSettings: Demo) {
   const {
-    pokeshop: {httpEndpoint: pokeshopHttp = '', grpcEndpoint: pokeshopGrpc = ''},
+    pokeshop: {
+      httpEndpoint: pokeshopHttp = '',
+      grpcEndpoint: pokeshopGrpc = '',
+      kafkaBroker: pokeshopKafka = '',
+    },
   } = demoSettings;
 
   return {
@@ -114,6 +118,17 @@ export function getPokeshopDemo(demoSettings: Demo) {
         command: `curl -XPOST -H "Content-type: application/json" --data '{"id":52}' '${pokeshopHttp}/pokemon/import'`,
       },
     ],
+    [SupportedPlugins.Kafka]: [
+      {
+        name: 'Pokeshop - Import from Stream',
+        brokerUrls: [ `${pokeshopKafka}` ],
+        topic: 'pokemon',
+        headers: [],
+        messageKey: 'snorlax-key',
+        messageValue: '{"id":143}',
+        description: 'Import a Pokemon via Stream',
+      }
+    ]
   };
 }
 
@@ -172,7 +187,7 @@ export function getOtelDemo(demoSettings: Demo) {
             state: 'CA',
             country: 'United States',
             city: 'Mountain View',
-            zipCode: 94043,
+            zipCode: '94043',
           },
           userCurrency: 'USD',
           creditCard: {
@@ -190,7 +205,7 @@ export function getOtelDemo(demoSettings: Demo) {
         name: 'Otel - List Products',
         url: otelProductCatalog,
         message: '',
-        method: 'hipstershop.ProductCatalogService.ListProducts',
+        method: 'oteldemo.ProductCatalogService.ListProducts',
         description: 'Otel - List Products',
         protoFile: otelProtoFile,
       },
@@ -198,7 +213,7 @@ export function getOtelDemo(demoSettings: Demo) {
         name: 'Otel - Get Product',
         url: otelProductCatalog,
         message: '{"id": "OLJCESPC7Z"}',
-        method: 'hipstershop.ProductCatalogService.GetProduct',
+        method: 'oteldemo.ProductCatalogService.GetProduct',
         description: 'Otel - Get Product',
         protoFile: otelProtoFile,
       },
@@ -206,7 +221,7 @@ export function getOtelDemo(demoSettings: Demo) {
         name: 'Otel - Add To Cart',
         url: otelCart,
         message: JSON.stringify({item: {product_id: 'OLJCESPC7Z', quantity: 1}, user_id: userId}),
-        method: 'hipstershop.CartService.AddItem',
+        method: 'oteldemo.CartService.AddItem',
         description: 'Otel - Add To Cart',
         protoFile: otelProtoFile,
       },
@@ -214,7 +229,7 @@ export function getOtelDemo(demoSettings: Demo) {
         name: 'Otel - Get Cart',
         url: otelCart,
         message: `{"user_id": "${userId}"}`,
-        method: 'hipstershop.CartService.GetCart',
+        method: 'oteldemo.CartService.GetCart',
         description: 'Otel - Get Cart',
         protoFile: otelProtoFile,
       },
@@ -239,7 +254,7 @@ export function getOtelDemo(demoSettings: Demo) {
             credit_card_expiration_month: 1,
           },
         }),
-        method: 'hipstershop.CheckoutService.PlaceOrder',
+        method: 'oteldemo.CheckoutService.PlaceOrder',
         description: 'Otel - Checkout',
         protoFile: otelProtoFile,
       },
@@ -267,7 +282,7 @@ export function getDemoByPluginMap(demos: Demo[]) {
     [SupportedPlugins.Postman]: (pokeshopDemoMap && pokeshopDemoMap[SupportedPlugins.Postman]) || [],
     [SupportedPlugins.CURL]: (pokeshopDemoMap && pokeshopDemoMap[SupportedPlugins.CURL]) || [],
     [SupportedPlugins.TraceID]: [],
-    [SupportedPlugins.Messaging]: [],
+    [SupportedPlugins.Kafka]: (pokeshopDemoMap && pokeshopDemoMap[SupportedPlugins.Kafka]) || [],
     [SupportedPlugins.OpenAPI]: [],
   };
 }

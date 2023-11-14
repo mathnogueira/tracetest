@@ -1,26 +1,36 @@
-import {Button} from 'antd';
+import {CloseCircleOutlined} from '@ant-design/icons';
+import {Button, Tooltip} from 'antd';
+import CreateButton from 'components/CreateButton';
 import RunActionsMenu from 'components/RunActionsMenu';
 import TestActions from 'components/TestActions';
 import TestState from 'components/TestState';
 import {TestState as TestStateEnum} from 'constants/TestRun.constants';
+import {isRunStateFinished, isRunStateStopped, isRunStateSucceeded} from 'models/TestRun.model';
 import {useTest} from 'providers/Test/Test.provider';
 import {useTestRun} from 'providers/TestRun/TestRun.provider';
 import {useTestSpecs} from 'providers/TestSpecs/TestSpecs.provider';
 import {useTestOutput} from 'providers/TestOutput/TestOutput.provider';
 import * as S from './RunDetailLayout.styled';
+import EventLogPopover from '../EventLogPopover/EventLogPopover';
+import RunStatusIcon from '../RunStatusIcon/RunStatusIcon';
+import VariableSetSelector from '../VariableSetSelector/VariableSetSelector';
 
 interface IProps {
   testId: string;
-  testVersion: number;
 }
 
-const HeaderRight = ({testId, testVersion}: IProps) => {
+const HeaderRight = ({testId}: IProps) => {
   const {isDraftMode: isTestSpecsDraftMode} = useTestSpecs();
   const {isDraftMode: isTestOutputsDraftMode} = useTestOutput();
   const isDraftMode = isTestSpecsDraftMode || isTestOutputsDraftMode;
-  const {run} = useTestRun();
+  const {
+    isLoadingStop,
+    run: {state, requiredGatesResult},
+    run,
+    stopRun,
+    runEvents,
+  } = useTestRun();
   const {onRun} = useTest();
-  const state = run.state;
 
   return (
     <S.Section $justifyContent="flex-end">
@@ -29,20 +39,37 @@ const HeaderRight = ({testId, testVersion}: IProps) => {
         <S.StateContainer data-cy="test-run-result-status">
           <S.StateText>Test status:</S.StateText>
           <TestState testState={state} />
+          {state === TestStateEnum.AWAITING_TRACE && (
+            <S.StopContainer>
+              <Tooltip title="Stop test execution">
+                <Button
+                  disabled={isLoadingStop}
+                  icon={<CloseCircleOutlined />}
+                  onClick={stopRun}
+                  shape="circle"
+                  type="link"
+                />
+              </Tooltip>
+            </S.StopContainer>
+          )}
         </S.StateContainer>
       )}
-      {!isDraftMode && state && state === TestStateEnum.FINISHED && (
-        <Button data-cy="run-test-button" ghost onClick={() => onRun(run.id)} type="primary">
-          Run Test
-        </Button>
+      {(isRunStateSucceeded(state) || isRunStateStopped(state)) && (
+        <RunStatusIcon state={state} requiredGatesResult={requiredGatesResult} />
       )}
+      <VariableSetSelector />
+      {!isDraftMode && state && isRunStateFinished(state) && (
+        <CreateButton data-cy="run-test-button" ghost onClick={() => onRun()} type="primary">
+          Run Test
+        </CreateButton>
+      )}
+      <EventLogPopover runEvents={runEvents} />
       <RunActionsMenu
         isRunView
         resultId={run.id}
         testId={testId}
-        testVersion={testVersion}
-        transactionId={run.transactionId}
-        transactionRunId={run.transactionRunId}
+        testSuiteRunId={run.testSuiteRunId}
+        testSuiteId={run.testSuiteId}
       />
     </S.Section>
   );

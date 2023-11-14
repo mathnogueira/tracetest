@@ -14,7 +14,7 @@ import (
 )
 
 type TestRun struct {
-	Id string `json:"id,omitempty"`
+	Id int32 `json:"id,omitempty"`
 
 	TraceId string `json:"traceId,omitempty"`
 
@@ -32,7 +32,7 @@ type TestRun struct {
 	// time in seconds it took for the test to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
 	ExecutionTime int32 `json:"executionTime,omitempty"`
 
-	// time in milliseconds it took for the triggering transaction to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
+	// time in milliseconds it took for the triggering testSuite to complete, either success or fail. If the test is still running, it will show the time up to the time of the request
 	TriggerTime int32 `json:"triggerTime,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt,omitempty"`
@@ -45,7 +45,9 @@ type TestRun struct {
 
 	CompletedAt time.Time `json:"completedAt,omitempty"`
 
-	Environment Environment `json:"environment,omitempty"`
+	VariableSet VariableSet `json:"variableSet,omitempty"`
+
+	ResolvedTrigger Trigger `json:"resolvedTrigger,omitempty"`
 
 	TriggerResult TriggerResult `json:"triggerResult,omitempty"`
 
@@ -53,18 +55,25 @@ type TestRun struct {
 
 	Result AssertionResults `json:"result,omitempty"`
 
+	Linter LinterResult `json:"linter,omitempty"`
+
 	Outputs []TestRunOutputsInner `json:"outputs,omitempty"`
+
+	RequiredGatesResult RequiredGatesResult `json:"requiredGatesResult,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
-	TransactionId string `json:"transactionId,omitempty"`
+	TestSuiteId string `json:"testSuiteId,omitempty"`
 
-	TransactionRunId string `json:"transactionRunId,omitempty"`
+	TestSuiteRunId int32 `json:"testSuiteRunId,omitempty"`
 }
 
 // AssertTestRunRequired checks if the required fields are not zero-ed
 func AssertTestRunRequired(obj TestRun) error {
-	if err := AssertEnvironmentRequired(obj.Environment); err != nil {
+	if err := AssertVariableSetRequired(obj.VariableSet); err != nil {
+		return err
+	}
+	if err := AssertTriggerRequired(obj.ResolvedTrigger); err != nil {
 		return err
 	}
 	if err := AssertTriggerResultRequired(obj.TriggerResult); err != nil {
@@ -76,10 +85,16 @@ func AssertTestRunRequired(obj TestRun) error {
 	if err := AssertAssertionResultsRequired(obj.Result); err != nil {
 		return err
 	}
+	if err := AssertLinterResultRequired(obj.Linter); err != nil {
+		return err
+	}
 	for _, el := range obj.Outputs {
 		if err := AssertTestRunOutputsInnerRequired(el); err != nil {
 			return err
 		}
+	}
+	if err := AssertRequiredGatesResultRequired(obj.RequiredGatesResult); err != nil {
+		return err
 	}
 	return nil
 }

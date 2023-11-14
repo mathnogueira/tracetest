@@ -1,11 +1,10 @@
 import {Button, Form} from 'antd';
 import {useCallback, useEffect, useMemo} from 'react';
+import AllowButton, {Operation} from 'components/AllowButton';
 import DataStoreService from 'services/DataStore.service';
 import {TDraftDataStore, TDataStoreForm, SupportedDataStores} from 'types/DataStore.types';
-import DataStore from 'models/DataStore.model';
-import {SupportedDataStoresToExplanation, SupportedDataStoresToName} from 'constants/DataStore.constants';
+import {SupportedDataStoresToName} from 'constants/DataStore.constants';
 import DataStoreConfig from 'models/DataStoreConfig.model';
-import DataStoreDocsBanner from '../DataStoreDocsBanner/DataStoreDocsBanner';
 import DataStoreComponentFactory from '../DataStorePlugin/DataStoreComponentFactory';
 import * as S from './DataStoreForm.styled';
 import DataStoreSelectionInput from './DataStoreSelectionInput';
@@ -20,7 +19,7 @@ interface IProps {
   onTestConnection(): void;
   isConfigReady: boolean;
   isTestConnectionLoading: boolean;
-  onDeleteConfig(dataStore: DataStore): void;
+  onDeleteConfig(): void;
   isLoading: boolean;
   isFormValid: boolean;
 }
@@ -37,21 +36,30 @@ const DataStoreForm = ({
   isLoading,
   isFormValid,
 }: IProps) => {
-  const initialValues = useMemo(() => DataStoreService.getInitialValues(dataStoreConfig), [dataStoreConfig]);
+  const configuredDataStoreType = dataStoreConfig.defaultDataStore.type as SupportedDataStores;
+  const initialValues = useMemo(
+    () => DataStoreService.getInitialValues(dataStoreConfig, configuredDataStoreType),
+    [configuredDataStoreType, dataStoreConfig]
+  );
   const dataStoreType = Form.useWatch('dataStoreType', form);
 
   useEffect(() => {
-    form.setFieldsValue({dataStore: {name: '', type: SupportedDataStores.JAEGER, ...initialValues.dataStore}});
+    form.setFieldsValue({
+      dataStore: {name: '', type: SupportedDataStores.JAEGER, ...initialValues.dataStore},
+    });
   }, [dataStoreType, form, initialValues.dataStore]);
 
   const onValidation = useCallback(
     async (_: any, draft: TDraftDataStore) => {
-      const isValid = await DataStoreService.validateDraft(draft);
-      onIsFormValid(isValid);
+      try {
+        const isValid = await DataStoreService.validateDraft(draft);
+        onIsFormValid(isValid);
+      } catch (e) {
+        onIsFormValid(false);
+      }
     },
     [onIsFormValid]
   );
-  const explanation = SupportedDataStoresToExplanation[dataStoreType!];
 
   return (
     <Form<TDraftDataStore>
@@ -73,25 +81,20 @@ const DataStoreForm = ({
               Tracetest needs configuration information to be able to retrieve your trace from your distributed tracing
               solution. Select your tracing data store and enter the configuration info.
             </S.Description>
-            {explanation ? (
-              <S.Explanation>{explanation}</S.Explanation>
-            ) : (
-              <S.Title>Provide the connection info for {SupportedDataStoresToName[dataStoreType!]}</S.Title>
-            )}
-            <DataStoreDocsBanner dataStoreType={dataStoreType!} />
             {dataStoreType && <DataStoreComponentFactory dataStoreType={dataStoreType} />}
           </S.TopContainer>
           <S.ButtonsContainer>
             {isConfigReady ? (
-              <Button
+              <AllowButton
+                operation={Operation.Configure}
                 disabled={isLoading}
                 type="primary"
                 ghost
-                onClick={() => onDeleteConfig(dataStoreConfig.defaultDataStore)}
+                onClick={onDeleteConfig}
                 danger
               >
                 {`Delete ${SupportedDataStoresToName[dataStoreConfig.defaultDataStore.type]} Data Store`}
-              </Button>
+              </AllowButton>
             ) : (
               <div />
             )}
@@ -99,9 +102,15 @@ const DataStoreForm = ({
               <Button loading={isTestConnectionLoading} type="primary" ghost onClick={onTestConnection}>
                 Test Connection
               </Button>
-              <Button disabled={!isFormValid} loading={isLoading} type="primary" onClick={() => form.submit()}>
-                Save
-              </Button>
+              <AllowButton
+                operation={Operation.Configure}
+                disabled={!isFormValid}
+                loading={isLoading}
+                type="primary"
+                onClick={() => form.submit()}
+              >
+                Save and Set as DataStore
+              </AllowButton>
             </S.SaveContainer>
           </S.ButtonsContainer>
         </S.FactoryContainer>

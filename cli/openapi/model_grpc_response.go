@@ -30,6 +30,8 @@ type GRPCResponse struct {
 // will change when the set of required properties is changed
 func NewGRPCResponse() *GRPCResponse {
 	this := GRPCResponse{}
+	var statusCode int32 = 0
+	this.StatusCode = &statusCode
 	return &this
 }
 
@@ -38,6 +40,8 @@ func NewGRPCResponse() *GRPCResponse {
 // but it doesn't guarantee that properties required by API are set
 func NewGRPCResponseWithDefaults() *GRPCResponse {
 	this := GRPCResponse{}
+	var statusCode int32 = 0
+	this.StatusCode = &statusCode
 	return &this
 }
 

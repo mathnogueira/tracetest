@@ -2,33 +2,34 @@ package http_test
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/kubeshop/tracetest/server/assertions/comparator"
-	"github.com/kubeshop/tracetest/server/executor/trigger"
 	"github.com/kubeshop/tracetest/server/http"
 	"github.com/kubeshop/tracetest/server/http/mappings"
-	"github.com/kubeshop/tracetest/server/id"
-	"github.com/kubeshop/tracetest/server/model"
 	"github.com/kubeshop/tracetest/server/openapi"
+	"github.com/kubeshop/tracetest/server/pkg/id"
+	"github.com/kubeshop/tracetest/server/test"
+	"github.com/kubeshop/tracetest/server/test/mocks"
 	"github.com/kubeshop/tracetest/server/testdb"
 	"github.com/kubeshop/tracetest/server/traces"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
-	exampleRun = model.Run{
+	exampleRun = test.Run{
 		ID:      1,
 		TestID:  id.ID("abc123"),
-		TraceID: http.IDGen.TraceID(),
-		Trace: &model.Trace{
-			ID: http.IDGen.TraceID(),
-			RootSpan: model.Span{
-				ID:   http.IDGen.SpanID(),
+		TraceID: id.NewRandGenerator().TraceID(),
+		Trace: &traces.Trace{
+			ID: id.NewRandGenerator().TraceID(),
+			RootSpan: traces.Span{
+				ID:   id.NewRandGenerator().SpanID(),
 				Name: "POST /pokemon/import",
-				Attributes: model.Attributes{
+				Attributes: traces.Attributes{
 					"tracetest.span.type": "http",
 					"service.name":        "pokeshop",
 					"http.response.body":  `{"id":52}`,
@@ -42,9 +43,9 @@ var (
 func TestContains_Issue617(t *testing.T) {
 
 	spec := openapi.TestSpecs{
-		Specs: []openapi.TestSpecsSpecsInner{
+		Specs: []openapi.TestSpec{
 			{
-				Selector: openapi.Selector{
+				SelectorParsed: openapi.Selector{
 					Query: `span[tracetest.span.type = "http" service.name = "pokeshop"  name = "POST /pokemon/import"]`,
 				},
 				Assertions: []string{
@@ -103,7 +104,7 @@ func TestContains_Issue617(t *testing.T) {
 	f := setupController(t)
 	f.expectGetRun(exampleRun)
 
-	actual, err := f.c.DryRunAssertion(context.TODO(), exampleRun.TestID.String(), strconv.Itoa(exampleRun.ID), spec)
+	actual, err := f.c.DryRunAssertion(context.TODO(), exampleRun.TestID.String(), int32(exampleRun.ID), spec)
 	require.NoError(t, err)
 
 	assert.Equal(t, 200, actual.Code)
@@ -113,25 +114,39 @@ func TestContains_Issue617(t *testing.T) {
 func setupController(t *testing.T) controllerFixture {
 	mdb := new(testdb.MockRepository)
 	mdb.Test(t)
+
+	runRepo := new(mocks.RunRepository)
+	runRepo.Test(t)
+
 	return controllerFixture{
-		db: mdb,
+		db:          mdb,
+		testRunRepo: runRepo,
 		c: http.NewController(
+			trace.NewNoopTracerProvider().Tracer("tracer"),
+			nil,
+			nil,
+			nil,
 			mdb,
 			nil,
 			nil,
-			mappings.New(traces.NewConversionConfig(), comparator.DefaultRegistry(), mdb),
-			&trigger.Registry{},
+			nil,
+			runRepo,
+			nil,
+			nil,
+			mappings.New(traces.NewConversionConfig(), comparator.DefaultRegistry()),
+			"unit-test",
 		),
 	}
 }
 
 type controllerFixture struct {
-	db *testdb.MockRepository
-	c  openapi.ApiApiServicer
+	db          *testdb.MockRepository
+	testRunRepo *mocks.RunRepository
+	c           openapi.ApiApiServicer
 }
 
-func (f controllerFixture) expectGetRun(r model.Run) {
-	f.db.
-		On("GetRun", r.TestID, r.ID).
+func (f controllerFixture) expectGetRun(r test.Run) {
+	f.testRunRepo.
+		On("GetRun", mock.Anything, r.TestID, r.ID).
 		Return(r, nil)
 }

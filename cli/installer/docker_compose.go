@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"io"
@@ -17,6 +18,8 @@ import (
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
+
+var localSystemDockerComposeCommand = "docker compose"
 
 var dockerCompose = installer{
 	name: "docker-compose",
@@ -57,7 +60,6 @@ const (
 )
 
 func dockerComposeInstaller(config configuration, ui cliUI.UI) {
-	trackInstall("docker-compose", config, nil)
 	dir := config.String("output.dir")
 
 	err := os.RemoveAll(dir)
@@ -71,7 +73,8 @@ func dockerComposeInstaller(config configuration, ui cliUI.UI) {
 	dockerComposeFName := filepath.Join(dir, dockerComposeFilename)
 
 	dockerCmd := fmt.Sprintf(
-		"docker compose -f %s  up -d",
+		"%s -f %s up -d",
+		localSystemDockerComposeCommand,
 		dockerComposeFName,
 	)
 
@@ -107,7 +110,7 @@ func getDockerComposeFileContents(ui cliUI.UI, config configuration) []byte {
 	include := []string{"tracetest", "postgres"}
 
 	if config.Bool("demo.enable.pokeshop") {
-		include = append(include, "cache", "queue", "demo-api", "demo-worker", "demo-rpc", "otel-collector")
+		include = append(include, "cache", "queue", "stream", "demo-api", "demo-worker", "demo-rpc", "demo-streaming-worker", "otel-collector")
 	}
 
 	// filter and update project
@@ -130,6 +133,7 @@ func getDockerComposeFileContents(ui cliUI.UI, config configuration) []byte {
 
 	sout := fixPortConfig(string(output))
 	sout = strings.ReplaceAll(sout, "$", "$$")
+	sout = strings.ReplaceAll(sout, "$${TRACETEST_DEV}", "${TRACETEST_DEV}")
 
 	return []byte(sout)
 }
@@ -259,6 +263,8 @@ func fixTracetestContainer(config configuration, project *types.Project, version
 	tts.Image = "kubeshop/tracetest:" + version
 	tts.Build = nil
 	tts.Volumes[0].Source = tracetestConfigFilename
+	tracetestDevEnv := "${TRACETEST_DEV}"
+	tts.Environment["TRACETEST_DEV"] = &tracetestDevEnv
 
 	replaceService(project, serviceName, tts)
 
@@ -319,9 +325,14 @@ func getCompleteProject(ui cliUI.UI, config configuration) *types.Project {
 		ui.Panic(err)
 	}
 
-	project, err := loader.Load(types.ConfigDetails{
-		WorkingDir:  workingDir,
+	project, err := loader.LoadWithContext(context.Background(), types.ConfigDetails{
+		WorkingDir:  fmt.Sprintf("%s/tracetest", workingDir),
 		ConfigFiles: configFiles,
+		Environment: map[string]string{
+			"TRACETEST_DEV": "",
+		},
+	}, func(o *loader.Options) {
+		o.SetProjectName("tracetest", true)
 	})
 	if err != nil {
 		ui.Exit(fmt.Errorf("cannot parse docker-compose file: %w", err).Error())
@@ -359,7 +370,14 @@ func dockerReadyChecker(ui cliUI.UI) {
 }
 
 func dockerComposeChecker(ui cliUI.UI) {
+	if commandSuccess("docker-compose") {
+		localSystemDockerComposeCommand = "docker-compose"
+		ui.Println(ui.Green("✔ docker-compose already installed"))
+		return
+	}
+
 	if commandSuccess("docker compose") {
+		localSystemDockerComposeCommand = "docker compose"
 		ui.Println(ui.Green("✔ docker compose already installed"))
 		return
 	}

@@ -82,6 +82,16 @@ const config = {
     //   },
     // ],
     [
+      '@docusaurus/plugin-ideal-image',
+      {
+        quality: 70,
+        max: 1030, // max resized image's size.
+        min: 640, // min resized image's size. if original is lower, use that size.
+        steps: 2, // the max number of images generated between min and max (inclusive)
+        disableInDev: false,
+      },
+    ],
+    [
       require.resolve('docusaurus-gtm-plugin'),
       {
         id: 'GTM-MZ7RNS7', // GTM Container ID
@@ -112,8 +122,20 @@ const config = {
             from: ['/advanced-selectors' /*, '/docs/legacyDocFrom2016'*/],
           },
           {
-            to: '/getting-started/detailed-installation',
-            from: ['/getting-started/cli' /*, '/docs/legacyDocFrom2016'*/],
+            to: '/core/deployment/docker',
+            from: ['/deployment/overview/docker', '/deployment/docker' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/core/deployment/kubernetes',
+            from: ['/deployment/overview/kubernetes', '/deployment/kubernetes' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/getting-started/installation',
+            from: ['/getting-started/cli', '/getting-started/detailed-installation', '/installing' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/getting-started/open',
+            from: ['/accessing-dashboard' /*, '/docs/legacyDocFrom2016'*/],
           },
           {
             to: '/configuration/overview',
@@ -137,7 +159,11 @@ const config = {
           },
           {
             to: '/cli/creating-tests',
-            from: ['/cli/test-definition-file' /*, '/docs/legacyDocFrom2016'*/],
+            from: ['/cli/test-definition-file', '/test-definition-file' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/cli/configuring-your-cli/',
+            from: ['/cli/command-line-tool' /*, '/docs/legacyDocFrom2016'*/],
           },
           {
             to: '/ci-cd-automation/github-actions-pipeline',
@@ -154,6 +180,80 @@ const config = {
           {
             to: '/tools-and-integrations/testkube',
             from: ['/tools-and-integrations/integrations/testkube' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/ci-cd-automation/testkube-pipeline',
+            from: ['/examples-tutorials/recipes/running-tracetest-with-testkube' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/ci-cd-automation/tekton-pipeline',
+            from: ['/examples-tutorials/recipes/running-tracetest-with-tekton' /*, '/docs/legacyDocFrom2016'*/],
+          },
+          {
+            to: '/analyzer/concepts',
+            from: ['/concepts/tracetest-analyzer-concepts'],
+          },
+          {
+            to: '/cli/cli-installation-reference',
+            from: ['/getting-started/cli-installation-reference'],
+          },
+          {
+            to: '/cli/creating-test-suites',
+            from: ['/cli/creating-transactions'],
+          },
+          {
+            to: '/concepts/test-suites',
+            from: ['/concepts/transactions'],
+          },
+          {
+            to: '/web-ui/creating-test-suites',
+            from: ['/web-ui/creating-transactions'],
+          },
+          {
+            to: '/web-ui/creating-tests',
+            from: ['/create-test'],
+          },
+          {
+            to: '/web-ui/creating-test-specifications',
+            from: ['/adding-assertions'],
+          },
+          {
+            to: '/web-ui/test-results',
+            from: ['/test-results'],
+          },
+          // SaaS to Core
+          {
+            to: '/core/configuration/server',
+            from: ['/configuration/server'],
+          },
+          {
+            to: '/core/configuration/provisioning',
+            from: ['/configuration/provisioning'],
+          },
+          {
+            to: '/core/configuration/analytics',
+            from: ['/configuration/analytics'],
+          },
+          {
+            to: '/core/configuration/telemetry',
+            from: ['/configuration/telemetry'],
+          },
+          {
+            to: '/core/configuration/upgrade',
+            from: ['/configuration/upgrade'],
+          },
+          // Live Examples
+          {
+            to: '/live-examples/pokeshop/use-cases/add-pokemon',
+            from: ['/pokeshop/add-pokemon/'],
+          },
+          {
+            to: '/live-examples/pokeshop/use-cases/import-pokemon',
+            from: ['/pokeshop/import-pokemon/'],
+          },
+          {
+            to: '/live-examples/pokeshop/overview',
+            from: ['/pokeshop'],
           },
         ],
         // createRedirects(existingPath) {
@@ -172,36 +272,109 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      docs: {
+        sidebar: {
+          hideable: true,
+          autoCollapseCategories: true,
+        },
+      },  
       colorMode: {
         defaultMode: 'light',
         disableSwitch: false,
         respectPrefersColorScheme: false,
       },
+      // Use this to add an announcement for a webinar or event.
+      announcementBar: {
+        id: 'announcement',
+        // content:
+        //   '<a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/live/2MSDy3XHjtE?si=VlK7cxJOsgKi5QTE&t=1132">Tracetest is the official testing harness for the OpenTelemetry Demo! 🚀</a>',
+        content:
+          '<a target="_blank" rel="noopener noreferrer" href="https://tracetest.io/blog/opentelemetry-is-not-just-for-monitoring-and-troubleshooting-any-longer-announcing-tracetest-open-beta">Tracetest Open Beta is Live. Try it! Give us feedback! 🙌</a>',
+        isCloseable: false,
+      },  
       navbar: {
-        title: 'Tracetest',
+        hideOnScroll: true,
         logo: {
           alt: 'Tracetest Logo',
-          src: 'img/logo.svg',
+          src: 'img/logo-landscape.svg',
+          srcDark: 'img/logo-landscape-dark.svg',
+          href: 'https://tracetest.io/',
+          target: '_blank',
         },
         items: [
-          // {
-          //   to: "/quick-start",
-          //   label: "Quick Start",
-          //   position: "left",
-          // },
           {
-            href: "https://discord.gg/6zupCZFQbe",
-            label: "Discord",
-            position: "left",
+            type: 'docSidebar',
+            position: 'left',
+            sidebarId: 'tutorialSidebar',
+            label: 'Docs'
+          },
+          {
+            type: 'docSidebar',
+            position: 'left',
+            sidebarId: 'coreSidebar',
+            label: 'Core'
+          },
+          {
+            type: 'docSidebar',
+            position: 'left',
+            sidebarId: 'examplesTutorialsSidebar',
+            label: 'Examples & Tutorials'
+          },
+          {
+            type: 'docSidebar',
+            position: 'left',
+            sidebarId: 'liveExamplesSidebar',
+            label: 'Live Examples'
+          },
+          {
+            type: 'dropdown',
+            label: 'Support',
+            position: 'left',
+            items: [
+              {
+                label: 'Overview',
+                href: 'https://tracetest.io/support',
+              },
+              {
+                label: 'Community',
+                href: 'https://tracetest.io/community',
+              },
+              {
+                label: 'Pricing',
+                href: 'https://tracetest.io/pricing',
+              },
+              {
+                label: 'Talk to us in Discord',
+                href: 'https://discord.gg/6zupCZFQbe',
+              },
+              {
+                label: 'Open an issue in GitHub',
+                href: 'https://github.com/kubeshop/tracetest/issues/new/choose',
+              },
+              {
+                label: 'Learn',
+                href: 'https://tracetest.io/learn',
+              },
+              {
+                label: 'Contact Us',
+                href: 'https://tracetest.io/contact',
+              },
+            ],
           },
           {
             type: "html",
-            position: "right",
-            value: `<iframe src="https://ghbtns.com/github-btn.html?user=kubeshop&repo=tracetest&type=star&count=true&size=large" style='margin-top: 6px' frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>`,
+            position: "left",
+            value: `<iframe src="https://ghbtns.com/github-btn.html?user=kubeshop&repo=tracetest&type=star&count=true&size=medium" style='margin-top: 6px' frameborder="0" scrolling="0" width="90" height="20" title="GitHub"></iframe>`,
           },
           {
             type: "search",
-            position: "left",
+            position: "right",
+          },
+          {
+            href: "https://app.tracetest.io",
+            label: "Sign In",
+            position: "right",
+            className: "sign-in-button",
           },
         ],
       },
@@ -228,11 +401,19 @@ const config = {
                 label: "Twitter",
                 href: "https://twitter.com/tracetest_io",
               },
+              {
+                label: "LinkedIn",
+                href: "https://www.linkedin.com/company/87135575",
+              },
             ],
           },
           {
             title: "More",
             items: [
+              {
+                label: "Home",
+                to: "https://tracetest.io",
+              },
               {
                 label: "Blog",
                 to: "https://tracetest.io/blog",

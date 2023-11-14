@@ -1,3 +1,6 @@
+import {capitalize} from 'lodash';
+import Env from './Env';
+
 export const escapeString = (str: string): string => {
   // eslint-disable-next-line no-control-regex
   return str.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
@@ -57,3 +60,30 @@ export function ordinalSuffixOf(i: number) {
 export function getTotalCountFromHeaders(meta: any) {
   return Number(meta?.response?.headers.get('x-total-count') || 0);
 }
+
+export const getServerBaseUrl = () => {
+  const {host, protocol} = window.location;
+  const prefix = Env.get('serverPathPrefix');
+
+  return `${protocol}//${host}${prefix}`;
+};
+
+export const ToTitle = (str: string) => {
+  return capitalize(str.replace(/\W/g, ' '));
+};
+
+export const getIsValidUrl = (url: string): boolean => {
+  try {
+    return !!getParsedURL(url);
+  } catch (e) {
+    return false;
+  }
+};
+
+export const getParsedURL = (rawUrl: string): URL => {
+  if (!!rawUrl && !rawUrl.startsWith('http')) {
+    return new URL(`http://${rawUrl}`);
+  }
+
+  return new URL(rawUrl);
+};

@@ -1,5 +1,5 @@
 import {QuestionCircleOutlined} from '@ant-design/icons';
-import {Layout, Menu, Typography} from 'antd';
+import {Layout, Typography} from 'antd';
 import styled from 'styled-components';
 
 export const Header = styled(Layout.Header)`
@@ -10,7 +10,9 @@ export const Header = styled(Layout.Header)`
   justify-content: space-between;
   height: 48px;
   line-height: 48px;
-  padding: 0 24px;
+  padding: 0;
+  padding-left: 24px;
+  padding-right: 24px;
 
   .ant-dropdown-trigger {
     display: block;
@@ -28,24 +30,7 @@ export const Header = styled(Layout.Header)`
 
 export const Logo = styled.img`
   height: 24px;
-  margin-right: 24px;
-`;
-
-export const NavMenu = styled(Menu).attrs({
-  mode: 'horizontal',
-  disabledOverflow: true,
-})`
-  && {
-    align-items: center;
-  }
-
-  .ant-menu-submenu.ant-menu-submenu-horizontal {
-    padding-right: 0;
-  }
-
-  .ant-menu-item > span > a {
-    color: ${({theme}) => theme.color.primary};
-  }
+  margin-right: 12px;
 `;
 
 export const QuestionIcon = styled(QuestionCircleOutlined)`
@@ -53,13 +38,16 @@ export const QuestionIcon = styled(QuestionCircleOutlined)`
   font-size: ${({theme}) => theme.size.lg};
 `;
 
-export const AppVersionContainer = styled.div`
-  border-top: ${({theme}) => `1px solid ${theme.color.borderLight}`};
-`;
-
 export const AppVersion = styled(Typography.Text)`
   && {
     color: ${({theme}) => theme.color.textLight};
     font-size: ${({theme}) => theme.size.sm};
   }
+`;
+
+export const MenuContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  flex-direction: row;
+  align-items: center;
 `;

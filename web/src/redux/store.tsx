@@ -1,41 +1,27 @@
 import {Action, configureStore, ThunkAction} from '@reduxjs/toolkit';
 import {createReduxHistoryContext} from 'redux-first-history';
 import {createBrowserHistory} from 'history';
-import TestAPI from 'redux/apis/TraceTest.api';
-import TestSpecs from 'redux/slices/TestSpecs.slice';
-import Spans from 'redux/slices/Span.slice';
-import CreateTest from 'redux/slices/CreateTest.slice';
-import DAG from 'redux/slices/DAG.slice';
-import Trace from 'redux/slices/Trace.slice';
-import CreateTransaction from 'redux/slices/CreateTransaction.slice';
-import User from 'redux/slices/User.slice';
+import TracetestAPI from 'redux/apis/Tracetest';
+
 import RouterMiddleware from './Router.middleware';
-import OtelRepoApi from './apis/OtelRepo.api';
-import TestOutputs from './testOutputs/slice';
+import {middlewares, reducers} from './setup';
 
 const {createReduxHistory, routerMiddleware, routerReducer} = createReduxHistoryContext({
   history: createBrowserHistory(),
 });
 
+TracetestAPI.create();
+
 export const store = configureStore({
   reducer: {
-    [TestAPI.reducerPath]: TestAPI.reducer,
-    [OtelRepoApi.reducerPath]: OtelRepoApi.reducer,
-
+    ...reducers,
+    [TracetestAPI.instance.reducerPath]: TracetestAPI.instance.reducer,
     router: routerReducer,
-    spans: Spans,
-    dag: DAG,
-    trace: Trace,
-    testSpecs: TestSpecs,
-    createTest: CreateTest,
-    createTransaction: CreateTransaction,
-    user: User,
-    testOutputs: TestOutputs,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware()
       .prepend(RouterMiddleware.middleware)
-      .concat(TestAPI.middleware, routerMiddleware, OtelRepoApi.middleware),
+      .concat(TracetestAPI.instance.middleware, ...middlewares, routerMiddleware),
 });
 
 export const history = createReduxHistory(store);

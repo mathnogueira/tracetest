@@ -2,21 +2,26 @@ package tracedb
 
 import (
 	"context"
-	"strings"
+	"database/sql"
+	"errors"
 
-	"github.com/kubeshop/tracetest/server/model"
 	"github.com/kubeshop/tracetest/server/tracedb/connection"
 	"github.com/kubeshop/tracetest/server/traces"
+	"go.opentelemetry.io/otel/trace"
 )
+
+type traceGetter interface {
+	Get(context.Context, trace.TraceID) (traces.Trace, error)
+}
 
 type OTLPTraceDB struct {
 	realTraceDB
-	db model.RunRepository
+	traceGetter traceGetter
 }
 
-func newCollectorDB(repository model.RunRepository) (TraceDB, error) {
+func newCollectorDB(repository traceGetter) (TraceDB, error) {
 	return &OTLPTraceDB{
-		db: repository,
+		traceGetter: repository,
 	}, nil
 }
 
@@ -33,22 +38,16 @@ func (tdb *OTLPTraceDB) Close() error {
 	return nil
 }
 
-func (jtd *OTLPTraceDB) TestConnection(ctx context.Context) connection.ConnectionTestResult {
-	return connection.ConnectionTestResult{}
+func (tdb *OTLPTraceDB) GetEndpoints() string {
+	return ""
 }
 
 // GetTraceByID implements TraceDB
-func (tdb *OTLPTraceDB) GetTraceByID(ctx context.Context, id string) (model.Trace, error) {
-	run, err := tdb.db.GetRunByTraceID(ctx, traces.DecodeTraceID(id))
-	if err != nil && strings.Contains(err.Error(), "record not found") {
-		return model.Trace{}, connection.ErrTraceNotFound
+func (tdb *OTLPTraceDB) GetTraceByID(ctx context.Context, id string) (traces.Trace, error) {
+	t, err := tdb.traceGetter.Get(ctx, traces.DecodeTraceID(id))
+	if errors.Is(err, sql.ErrNoRows) {
+		err = connection.ErrTraceNotFound
 	}
 
-	if run.Trace == nil {
-		return model.Trace{}, connection.ErrTraceNotFound
-	}
-
-	return *run.Trace, nil
+	return t, err
 }
-
-var _ TraceDB = &OTLPTraceDB{}

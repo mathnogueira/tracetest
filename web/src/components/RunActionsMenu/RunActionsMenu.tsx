@@ -1,33 +1,25 @@
 import {Dropdown, Menu} from 'antd';
-import {useNavigate} from 'react-router-dom';
 
 import {useFileViewerModal} from 'components/FileViewerModal/FileViewerModal.provider';
 import useDeleteResourceRun from 'hooks/useDeleteResourceRun';
+import {Operation, useCustomization} from 'providers/Customization';
+import {useDashboard} from 'providers/Dashboard/Dashboard.provider';
 import TestRunAnalyticsService from 'services/Analytics/TestRunAnalytics.service';
 import {ResourceType} from 'types/Resource.type';
 import * as S from './RunActionsMenu.styled';
 
 interface IProps {
-  resultId: string;
+  resultId: number;
   testId: string;
-  testVersion: number;
   isRunView?: boolean;
-  transactionId?: string;
-  transactionRunId: string;
+  testSuiteId?: string;
+  testSuiteRunId: number;
 }
 
-const RunActionsMenu = ({
-  resultId,
-  testId,
-  testVersion,
-  transactionId,
-  transactionRunId,
-  isRunView = false,
-}: IProps) => {
-  const {loadJUnit, loadDefinition} = useFileViewerModal();
-
-  const navigate = useNavigate();
-
+const RunActionsMenu = ({resultId, testId, testSuiteId, testSuiteRunId, isRunView = false}: IProps) => {
+  const {getIsAllowed} = useCustomization();
+  const {onJUnit} = useFileViewerModal();
+  const {navigate} = useDashboard();
   const onDelete = useDeleteResourceRun({id: testId, isRunView, type: ResourceType.Test});
 
   return (
@@ -35,15 +27,15 @@ const RunActionsMenu = ({
       <Dropdown
         overlay={
           <Menu>
-            {!!transactionId && !!transactionRunId && (
+            {!!testSuiteId && !!testSuiteRunId && (
               <Menu.Item
-                data-cy="transaction-run-button"
-                key="transaction-run"
+                data-cy="testsuite-run-button"
+                key="testsuite-run"
                 onClick={() => {
-                  navigate(`/transaction/${transactionId}/run/${transactionRunId}`);
+                  navigate(`/testsuite/${testSuiteId}/run/${testSuiteRunId}`);
                 }}
               >
-                Transaction Run
+                Test Suite Run
               </Menu.Item>
             )}
             <Menu.Item
@@ -51,20 +43,19 @@ const RunActionsMenu = ({
               key="view-junit"
               onClick={() => {
                 TestRunAnalyticsService.onLoadJUnitReport();
-                loadJUnit(testId, resultId);
+                onJUnit(testId, resultId);
               }}
             >
               JUnit Results
             </Menu.Item>
             <Menu.Item
-              data-cy="view-test-definition-button"
-              key="view-test-definition"
+              data-cy="automate-test-button"
+              key="automate-test"
               onClick={() => {
-                TestRunAnalyticsService.onLoadTestDefinition();
-                loadDefinition(ResourceType.Test, testId, testVersion);
+                navigate(`/test/${testId}/run/${resultId}/automate`);
               }}
             >
-              Test Definition
+              Automate
             </Menu.Item>
             <Menu.Item
               data-cy="test-edit-button"
@@ -73,6 +64,7 @@ const RunActionsMenu = ({
                 navigate(`/test/${testId}/run/${resultId}`);
               }}
               key="edit"
+              disabled={!getIsAllowed(Operation.Edit)}
             >
               Edit
             </Menu.Item>
@@ -83,6 +75,7 @@ const RunActionsMenu = ({
                 onDelete(resultId);
               }}
               key="delete"
+              disabled={!getIsAllowed(Operation.Edit)}
             >
               Delete
             </Menu.Item>

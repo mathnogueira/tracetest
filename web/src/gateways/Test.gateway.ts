@@ -1,23 +1,21 @@
-import {endpoints} from 'redux/apis/TraceTest.api';
-import {TRawTest} from 'models/Test.model';
-
-const {createTest, editTest, getTestById, getTestList, runTest} = endpoints;
+import TracetestAPI from 'redux/apis/Tracetest';
+import {TRawTestResource} from 'models/Test.model';
 
 const TestGateway = () => ({
   getList() {
-    return getTestList.initiate({});
+    return TracetestAPI.instance.endpoints.getTestList.initiate({});
   },
   getById(testId: string) {
-    return getTestById.initiate({testId});
+    return TracetestAPI.instance.endpoints.getTestById.initiate({testId});
   },
-  create(test: TRawTest) {
-    return createTest.initiate(test);
+  create(test: TRawTestResource) {
+    return TracetestAPI.instance.endpoints.createTest.initiate(test);
   },
   run(testId: string) {
-    return runTest.initiate({testId});
+    return TracetestAPI.instance.endpoints.runTest.initiate({testId});
   },
-  edit(test: TRawTest, testId: string) {
-    return editTest.initiate({test, testId});
+  edit(test: TRawTestResource, testId: string) {
+    return TracetestAPI.instance.endpoints.editTest.initiate({test, testId});
   },
 });
 

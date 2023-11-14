@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import {Typography} from 'antd';
 import {LeftOutlined} from '@ant-design/icons';
-import {Link} from 'react-router-dom';
+import Link from 'components/Link';
 
 export const BackIcon = styled(LeftOutlined)`
   cursor: pointer;
@@ -9,7 +9,7 @@ export const BackIcon = styled(LeftOutlined)`
 `;
 
 export const Container = styled.div`
-  height: 100%;
+  height: 100vh;
 
   .ant-tabs,
   .ant-tabs-content {
@@ -36,6 +36,14 @@ export const ContainerHeader = styled.div`
       display: none;
     }
 
+    .ant-tabs-nav-wrap {
+      overflow: visible;
+    }
+
+    .ant-tabs-nav-more {
+      display: none;
+    }
+
     ::before {
       display: none;
     }
@@ -47,7 +55,7 @@ export const ContainerHeader = styled.div`
 
   .ant-tabs-tab {
     font-weight: 600;
-    padding: 5px 16px;
+    padding: 0;
     margin: 7px 0;
     border: ${({theme}) => `1px solid ${theme.color.borderLight}`};
     border-right: none;
@@ -86,14 +94,17 @@ export const Section = styled.div<{$justifyContent: string}>`
   display: flex;
   gap: 14px;
   justify-content: ${({$justifyContent}) => $justifyContent};
-  width: calc((100vw / 2) - 150px);
+  width: calc((100vw / 2) - 200px);
 `;
 
 export const StateContainer = styled.div`
   align-items: center;
   display: flex;
   justify-self: flex-end;
-  cursor: pointer;
+`;
+
+export const StopContainer = styled.div`
+  margin-left: 12px;
 `;
 
 export const StateText = styled(Typography.Text)`
@@ -115,13 +126,14 @@ export const Text = styled(Typography.Text).attrs({
 export const Title = styled(Typography.Title).attrs({ellipsis: true, level: 2})`
   && {
     margin: 0;
-    max-width: calc((100vw / 2) - 150px - 54px);
+    max-width: calc((100vw / 2) - 200px - 54px);
   }
 `;
 
 export const TabLink = styled(Link)<{$isActive: boolean}>`
   && {
     color: ${({theme, $isActive}) => $isActive && theme.color.white};
+    padding: 5px 16px;
 
     &:hover,
     &:visited,

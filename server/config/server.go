@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strings"
 )
 
 var serverOptions = options{
@@ -69,67 +71,144 @@ var serverOptions = options{
 		description:  "internal telemetry  otel collector (used for internal testing)",
 		validate:     nil,
 	},
+	{
+		key:          "testPipelines.triggerExecute.enabled",
+		defaultValue: "true",
+		description:  "enable local trigger execution",
+	},
+	{
+		key:          "testPipelines.traceFetch.enabled",
+		defaultValue: "true",
+		description:  "enable local trace fetching",
+	},
+	{
+		key:          "dataStorePipelines.testConnection.enabled",
+		defaultValue: "true",
+		description:  "enable local data store test connection",
+	},
+	{
+		key:          "otlpServer.enabled",
+		defaultValue: "true",
+		description:  "enable otlp server",
+	},
+	{
+		key:          "analytics.serverKey",
+		defaultValue: "",
+		description:  "analytics server key",
+	},
+	{
+		key:          "analytics.frontendKey",
+		defaultValue: "",
+		description:  "analytics frontend key",
+	},
 }
 
 func init() {
 	configOptions = append(configOptions, serverOptions...)
 }
 
-func (c *Config) PostgresConnString() string {
+func (c *AppConfig) PostgresConnString() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if postgresConnString := c.vp.GetString("postgresConnString"); postgresConnString != "" {
-		return postgresConnString
+		fmt.Println("ERROR: postgresConnString was discontinued. Migrate to the new postgres format")
+		os.Exit(1)
 	}
 
-	str := fmt.Sprintf(
-		"host=%s user=%s password=%s port=%d dbname=%s",
-		c.vp.GetString("postgres.host"),
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?%s",
 		c.vp.GetString("postgres.user"),
 		c.vp.GetString("postgres.password"),
+		c.vp.GetString("postgres.host"),
 		c.vp.GetInt("postgres.port"),
 		c.vp.GetString("postgres.dbname"),
+		strings.ReplaceAll(c.vp.GetString("postgres.params"), " ", "&"),
 	)
-
-	if params := c.vp.GetString("postgres.params"); params != "" {
-		str += " " + params
-	}
-
-	return str
 }
 
-func (c *Config) ServerPathPrefix() string {
+func (c *AppConfig) ServerPathPrefix() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.vp.GetString("server.pathPrefix")
 }
 
-func (c *Config) ServerPort() int {
+func (c *AppConfig) ServerPort() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.vp.GetInt("server.httpPort")
 }
 
-func (c *Config) ExperimentalFeatures() []string {
+func (c *AppConfig) ExperimentalFeatures() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.vp.GetStringSlice("experimentalFeatures")
 }
 
-func (c *Config) InternalTelemetryEnabled() bool {
+func (c *AppConfig) InternalTelemetryEnabled() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.vp.GetBool("internalTelemetry.enabled")
 }
 
-func (c *Config) InternalTelemetryOtelCollectorAddress() string {
+func (c *AppConfig) InternalTelemetryOtelCollectorAddress() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.vp.GetString("internalTelemetry.otelCollectorEndpoint")
+}
+
+func (c *AppConfig) TestPipelineTriggerExecutionEnabled() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// this config needs to be a string because pflags
+	// has a strage bug that ignores this field when
+	// it is set as false
+	return c.vp.GetString("testPipelines.triggerExecute.enabled") == "true"
+}
+
+func (c *AppConfig) TestPipelineTraceFetchingEnabled() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.vp.GetString("testPipelines.traceFetch.enabled") == "true"
+}
+
+func (c *AppConfig) DataStorePipelineTestConnectionEnabled() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.vp.GetString("dataStorePipelines.testConnection.enabled") == "true"
+}
+
+func (c *AppConfig) OtlpServerEnabled() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.vp.GetString("otlpServer.enabled") == "true"
+}
+
+func (c *AppConfig) AnalyticsServerKey() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.vp.GetString("analytics.serverKey")
+}
+
+func (c *AppConfig) AnalyticsFrontendKey() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.vp.GetString("analytics.frontendKey")
+}
+
+func (c *AppConfig) NATSEndpoint() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.vp.GetString("nats.endpoint")
 }

@@ -14,8 +14,10 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/kubeshop/tracetest/server/datastore"
 	"github.com/kubeshop/tracetest/server/model"
 	"github.com/kubeshop/tracetest/server/tracedb/connection"
+	"github.com/kubeshop/tracetest/server/traces"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -25,7 +27,7 @@ func elasticSearchDefaultPorts() []string {
 
 type elasticsearchDB struct {
 	realTraceDB
-	config *model.ElasticSearchDataStoreConfig
+	config *datastore.ElasticSearchConfig
 	client *elasticsearch.Client
 }
 
@@ -38,10 +40,14 @@ func (db *elasticsearchDB) Close() error {
 	return nil
 }
 
-func (db *elasticsearchDB) TestConnection(ctx context.Context) connection.ConnectionTestResult {
+func (db *elasticsearchDB) GetEndpoints() string {
+	return strings.Join(db.config.Addresses, ", ")
+}
+
+func (db *elasticsearchDB) TestConnection(ctx context.Context) model.ConnectionResult {
 	tester := connection.NewTester(
 		connection.WithPortLintingTest(connection.PortLinter("ElasticSearch", elasticSearchDefaultPorts(), db.config.Addresses...)),
-		connection.WithConnectivityTest(connection.ConnectivityStep(connection.ProtocolHTTP, db.config.Addresses...)),
+		connection.WithConnectivityTest(connection.ConnectivityStep(model.ProtocolHTTP, db.config.Addresses...)),
 		connection.WithPollingTest(connection.TracePollingTestStep(db)),
 		connection.WithAuthenticationTest(connection.NewTestStep(func(ctx context.Context) (string, error) {
 			_, err := getClusterInfo(db.client)
@@ -60,9 +66,9 @@ func (db *elasticsearchDB) Ready() bool {
 	return db.client != nil
 }
 
-func (db *elasticsearchDB) GetTraceByID(ctx context.Context, traceID string) (model.Trace, error) {
+func (db *elasticsearchDB) GetTraceByID(ctx context.Context, traceID string) (traces.Trace, error) {
 	if !db.Ready() {
-		return model.Trace{}, fmt.Errorf("ElasticSearch dataStore not ready")
+		return traces.Trace{}, fmt.Errorf("ElasticSearch dataStore not ready")
 	}
 	content := strings.NewReader(fmt.Sprintf(`{
 		"query": { "match": { "trace.id": "%s" } }
@@ -76,29 +82,29 @@ func (db *elasticsearchDB) GetTraceByID(ctx context.Context, traceID string) (mo
 
 	response, err := searchRequest.Do(ctx, db.client)
 	if err != nil {
-		return model.Trace{}, fmt.Errorf("could not execute search request: %w", err)
+		return traces.Trace{}, fmt.Errorf("could not execute search request: %w", err)
 	}
 	defer response.Body.Close()
 
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return model.Trace{}, fmt.Errorf("could not read response body")
+		return traces.Trace{}, fmt.Errorf("could not read response body")
 	}
 
 	var searchResponse searchResponse
 	err = json.Unmarshal(responseBody, &searchResponse)
 	if err != nil {
-		return model.Trace{}, fmt.Errorf("could not unmarshal search response into struct: %w", err)
+		return traces.Trace{}, fmt.Errorf("could not unmarshal search response into struct: %w", err)
 	}
 
 	if len(searchResponse.Hits.Results) == 0 {
-		return model.Trace{}, connection.ErrTraceNotFound
+		return traces.Trace{}, connection.ErrTraceNotFound
 	}
 
 	return convertElasticSearchFormatIntoTrace(traceID, searchResponse), nil
 }
 
-func newElasticSearchDB(cfg *model.ElasticSearchDataStoreConfig) (TraceDB, error) {
+func newElasticSearchDB(cfg *datastore.ElasticSearchConfig) (TraceDB, error) {
 	var caCert []byte
 	if cfg.Certificate != "" {
 		caCert = []byte(cfg.Certificate)
@@ -147,17 +153,17 @@ func getClusterInfo(client *elasticsearch.Client) (string, error) {
 	return info, nil
 }
 
-func convertElasticSearchFormatIntoTrace(traceID string, searchResponse searchResponse) model.Trace {
-	spans := make([]model.Span, 0)
+func convertElasticSearchFormatIntoTrace(traceID string, searchResponse searchResponse) traces.Trace {
+	spans := make([]traces.Span, 0)
 	for _, result := range searchResponse.Hits.Results {
 		span := convertElasticSearchSpanIntoSpan(result.Source)
 		spans = append(spans, span)
 	}
 
-	return model.NewTrace(traceID, spans)
+	return traces.NewTrace(traceID, spans)
 }
 
-func convertElasticSearchSpanIntoSpan(input map[string]interface{}) model.Span {
+func convertElasticSearchSpanIntoSpan(input map[string]interface{}) traces.Span {
 	opts := &FlattenOptions{Delimiter: "."}
 	flatInput, _ := flatten(opts.Prefix, 0, input, opts)
 
@@ -199,7 +205,7 @@ func convertElasticSearchSpanIntoSpan(input map[string]interface{}) model.Span {
 	endTime := startTime.Add(time.Microsecond * time.Duration(duration))
 
 	// Attributes
-	attributes := make(model.Attributes, 0)
+	attributes := make(traces.Attributes, 0)
 
 	for attrName, attrValue := range flatInput {
 		name := attrName
@@ -211,17 +217,17 @@ func convertElasticSearchSpanIntoSpan(input map[string]interface{}) model.Span {
 	// ParentId
 	parentId := flatInput["parent.id"]
 	if parentId != nil {
-		attributes["parent_id"] = flatInput["parent.id"].(string)
+		attributes[traces.TracetestMetadataFieldParentID] = flatInput["parent.id"].(string)
 	}
 
-	return model.Span{
+	return traces.Span{
 		ID:         id,
 		Name:       name,
 		StartTime:  startTime,
 		EndTime:    endTime,
 		Attributes: attributes,
 		Parent:     nil,
-		Children:   []*model.Span{},
+		Children:   []*traces.Span{},
 	}
 }
 

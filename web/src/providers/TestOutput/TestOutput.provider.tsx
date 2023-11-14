@@ -1,8 +1,6 @@
 import {noop} from 'lodash';
 import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-
-import {useParseExpressionMutation} from 'redux/apis/TraceTest.api';
+import TracetestAPI from 'redux/apis/Tracetest';
 import {useAppDispatch, useAppSelector} from 'redux/hooks';
 import {selectIsPending, selectSelectedOutputs, selectTestOutputs} from 'redux/testOutputs/selectors';
 import {
@@ -15,17 +13,23 @@ import {
   outputsTestRunOutputsMerged,
   outputUpdated,
 } from 'redux/testOutputs/slice';
-import TestOutput from '../../models/TestOutput.model';
+import TestOutput from 'models/TestOutput.model';
+import SpanSelectors from 'selectors/Span.selectors';
+import useValidateOutput from './hooks/useValidateOutput';
 import {useConfirmationModal} from '../ConfirmationModal/ConfirmationModal.provider';
-import {useEnvironment} from '../Environment/Environment.provider';
+import {useDashboard} from '../Dashboard/Dashboard.provider';
+import {useVariableSet} from '../VariableSet';
 import {useTest} from '../Test/Test.provider';
 import {useTestRun} from '../TestRun/TestRun.provider';
+
+const {useParseExpressionMutation} = TracetestAPI.instance;
 
 interface IContext {
   isDraftMode: boolean;
   isEditing: boolean;
   isLoading: boolean;
   isOpen: boolean;
+  isValid: boolean;
   onCancel(): void;
   onClose(): void;
   onDelete(id: number): void;
@@ -33,6 +37,7 @@ interface IContext {
   onOpen(draft?: TestOutput): void;
   onSubmit(values: TestOutput): void;
   onSelectedOutputs(outputs: TestOutput[]): void;
+  onValidate(_: any, output: TestOutput): void;
   output?: TestOutput;
   outputs: TestOutput[];
   selectedOutputs: TestOutput[];
@@ -43,6 +48,7 @@ export const Context = createContext<IContext>({
   isEditing: false,
   isLoading: false,
   isOpen: false,
+  isValid: false,
   onCancel: noop,
   onClose: noop,
   onDelete: noop,
@@ -50,6 +56,7 @@ export const Context = createContext<IContext>({
   onOpen: noop,
   onSubmit: noop,
   onSelectedOutputs: noop,
+  onValidate: noop,
   output: undefined,
   outputs: [],
   selectedOutputs: [],
@@ -57,7 +64,7 @@ export const Context = createContext<IContext>({
 
 interface IProps {
   children: React.ReactNode;
-  runId: string;
+  runId: number;
   testId: string;
 }
 
@@ -70,8 +77,8 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const {onOpen: onOpenConfirmationModal} = useConfirmationModal();
-  const navigate = useNavigate();
-  const {selectedEnvironment} = useEnvironment();
+  const {navigate} = useDashboard();
+  const {selectedVariableSet} = useVariableSet();
   const {
     test: {outputs: testOutputs = []},
   } = useTest();
@@ -81,6 +88,8 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
   const outputs = useAppSelector(state => selectTestOutputs(state));
   const selectedOutputs = useAppSelector(selectSelectedOutputs);
   const isDraftMode = useAppSelector(selectIsPending);
+  const spanIdList = useAppSelector(SpanSelectors.selectMatchedSpans);
+  const {isValid, onValidate} = useValidateOutput({spanIdList});
 
   useEffect(() => {
     dispatch(outputsInitiated(testOutputs));
@@ -94,17 +103,34 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
     dispatch(outputsTestRunOutputsMerged(runOutputs));
   }, [dispatch, runOutputs]);
 
-  const onOpen = useCallback((values?: TestOutput) => {
+  const handleOpen = useCallback((values?: TestOutput) => {
     setDraft(values);
     setIsOpen(true);
     const id = values?.id ?? -1;
     setIsEditing(id !== -1);
   }, []);
 
+  const onOpen = useCallback(
+    (values?: TestOutput) => {
+      if (isValid) {
+        onOpenConfirmationModal({
+          title: 'Unsaved changes',
+          heading: 'Discard unsaved changes?',
+          okText: 'Discard',
+          onConfirm: () => {
+            handleOpen(values);
+          },
+        });
+      } else handleOpen(values);
+    },
+    [handleOpen, isValid, onOpenConfirmationModal]
+  );
+
   const onClose = useCallback(() => {
     setDraft(undefined);
     setIsOpen(false);
-  }, []);
+    onValidate(undefined, TestOutput({}));
+  }, [onValidate]);
 
   const onCancel = useCallback(() => {
     dispatch(outputsReverted());
@@ -132,7 +158,7 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
           runId,
           spanId,
           selector: values.selector,
-          environmentId: selectedEnvironment?.id,
+          variableSetId: selectedVariableSet?.id,
         },
       };
       const parsedExpression = await parseExpressionMutation(props).unwrap();
@@ -146,7 +172,7 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
       }
       dispatch(outputAdded({...values, valueRunDraft, spanId}));
     },
-    [dispatch, draft?.id, isEditing, parseExpressionMutation, runId, selectedEnvironment?.id, testId]
+    [dispatch, draft?.id, isEditing, parseExpressionMutation, runId, selectedVariableSet?.id, testId]
   );
 
   const onNavigateAndOpen = useCallback(
@@ -171,6 +197,8 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
       isEditing,
       isLoading,
       isOpen,
+      isValid,
+      onValidate,
       onCancel,
       onClose,
       onDelete,
@@ -188,6 +216,7 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
       isEditing,
       isLoading,
       isOpen,
+      isValid,
       onCancel,
       onClose,
       onDelete,
@@ -195,6 +224,7 @@ const TestOutputProvider = ({children, runId, testId}: IProps) => {
       onOpen,
       onSelectedOutputs,
       onSubmit,
+      onValidate,
       outputs,
       selectedOutputs,
     ]

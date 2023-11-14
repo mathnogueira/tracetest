@@ -1,0 +1,49 @@
+---
+id: overview
+title: Configuration
+description: Tracetest allows you to quickly build integration and end-to-end tests, powered by your OpenTelemetry traces. Learn how to get started with creating tests once you open Tracetest.
+keywords:
+  - tracetest
+  - trace-based testing
+  - observability
+  - distributed tracing
+  - testing
+image: https://res.cloudinary.com/djwdcmwdz/image/upload/v1698686403/docs/Blog_Thumbnail_14_rsvkmo.jpg
+---
+
+There is one configuration option with Tracetest:
+
+- [Agent configuration](/configuration/agent) to run it locally, in Docker, or Kubernetes.
+
+## Supported Trace Data Stores
+
+Tracetest is designed to work with different trace data stores. To enable Tracetest to run end-to-end tests against trace data, you need to configure Tracetest to access trace data.
+
+Currently, Tracetest supports the following data stores. Click on the respective data store to view configuration examples:
+
+- [AWS X-Ray](/configuration/connecting-to-data-stores/awsxray)
+- [Azure App Insights](/configuration/connecting-to-data-stores/azure-app-insights)
+- [Datadog](/configuration/connecting-to-data-stores/datadog)
+- [Dynatrace](/configuration/connecting-to-data-stores/dynatrace)
+- [Elastic APM](/configuration/connecting-to-data-stores/elasticapm)
+- [Grafana Tempo](/configuration/connecting-to-data-stores/tempo)
+- [Honeycomb](/configuration/connecting-to-data-stores/honeycomb)
+- [Jaeger](/configuration/connecting-to-data-stores/jaeger)
+- [Lightstep](/configuration/connecting-to-data-stores/lightstep)
+- [New Relic](/configuration/connecting-to-data-stores/new-relic)
+- [OpenSearch](/configuration/connecting-to-data-stores/opensearch)
+- [OpenTelemetry Collector](/configuration/connecting-to-data-stores/opentelemetry-collector)
+- [SignalFX](/configuration/connecting-to-data-stores/signalfx)
+- [Signoz](/configuration/connecting-to-data-stores/signoz)
+
+## Using Tracetest without a Trace Data Store
+
+Another option is to send traces directly to Tracetest using the OpenTelemetry Collector. And, you don't have to change your existing pipelines to do so.
+
+View [configuration for OpenTelemetry Collector](/configuration/connecting-to-data-stores/opentelemetry-collector) for more details.
+
+## Trace Data Store Configuration Examples
+
+Examples of configuring Tracetest to access different data stores can be found in the [`examples` folder of the Tracetest GitHub repo](https://github.com/kubeshop/tracetest/tree/main/examples). Check out the [**Recipes**](../examples-tutorials/recipes.mdx) for guided walkthroughs of sample use cases.
+
+We will be adding new data stores over the next couple of months - [let us know](https://github.com/kubeshop/tracetest/issues/new/choose) any additional data stores you would like to see us support.

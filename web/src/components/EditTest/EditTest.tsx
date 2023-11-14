@@ -1,11 +1,13 @@
 import {Button, Form} from 'antd';
+import AllowButton, {Operation} from 'components/AllowButton';
+import CreateButton from 'components/CreateButton';
 import EditTestForm from 'components/EditTestForm';
 import {TriggerTypeToPlugin} from 'constants/Plugins.constants';
 import useValidateTestDraft from 'hooks/useValidateTestDraft';
+import {isRunStateFinished} from 'models/TestRun.model';
 import {useTest} from 'providers/Test/Test.provider';
 import {useCallback, useState} from 'react';
 import {TDraftTest} from 'types/Test.types';
-import {TestState} from 'constants/TestRun.constants';
 import {useTestRun} from 'providers/TestRun/TestRun.provider';
 import TestRunAnalyticsService from 'services/Analytics/TestRunAnalytics.service';
 import Test from 'models/Test.model';
@@ -32,7 +34,7 @@ const EditTest = ({test}: IProps) => {
   );
 
   const {run} = useTestRun();
-  const stateIsFinished = ([TestState.FINISHED, TestState.FAILED] as string[]).includes(run.state);
+  const stateIsFinished = isRunStateFinished(run.state);
 
   return (
     <S.Wrapper data-cy="edit-test-form">
@@ -43,15 +45,17 @@ const EditTest = ({test}: IProps) => {
           <Button data-cy="edit-test-reset" onClick={() => form.resetFields()}>
             Reset
           </Button>
-          <Button
+          <AllowButton
+            operation={Operation.Edit}
+            ButtonComponent={CreateButton}
             data-cy="edit-test-submit"
-            loading={isEditLoading}
             disabled={!isValid || !stateIsFinished}
-            type="primary"
+            loading={isEditLoading}
             onClick={() => form.submit()}
+            type="primary"
           >
             Save & Run
-          </Button>
+          </AllowButton>
         </S.ButtonsContainer>
       </S.FormContainer>
     </S.Wrapper>

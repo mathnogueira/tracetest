@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubeshop/tracetest/server/model"
+	"github.com/kubeshop/tracetest/server/test"
+	"github.com/kubeshop/tracetest/server/test/trigger"
+	"github.com/kubeshop/tracetest/server/traces"
 	"go.opentelemetry.io/contrib/propagators/aws/xray"
 	"go.opentelemetry.io/contrib/propagators/b3"
 	"go.opentelemetry.io/contrib/propagators/jaeger"
@@ -28,15 +30,15 @@ type instrumentedTriggerer struct {
 	triggerer         Triggerer
 }
 
-func (t *instrumentedTriggerer) Type() model.TriggerType {
-	return model.TriggerType("instrumented")
+func (t *instrumentedTriggerer) Type() trigger.TriggerType {
+	return trigger.TriggerType("instrumented")
 }
 
-func (t *instrumentedTriggerer) Resolve(ctx context.Context, test model.Test, opts *TriggerOptions) (model.Test, error) {
+func (t *instrumentedTriggerer) Resolve(ctx context.Context, test test.Test, opts *ResolveOptions) (test.Test, error) {
 	return t.triggerer.Resolve(ctx, test, opts)
 }
 
-func (t *instrumentedTriggerer) Trigger(ctx context.Context, test model.Test, opts *TriggerOptions) (Response, error) {
+func (t *instrumentedTriggerer) Trigger(ctx context.Context, test test.Test, opts *TriggerOptions) (Response, error) {
 	_, span := t.tracer.Start(ctx, "Trigger test")
 	defer span.End()
 
@@ -57,7 +59,7 @@ func (t *instrumentedTriggerer) Trigger(ctx context.Context, test model.Test, op
 
 	triggerCtx := trace.ContextWithSpanContext(context.Background(), spanContext)
 
-	triggerSpanCtx, triggerSpan := t.triggerSpanTracer.Start(triggerCtx, model.TriggerSpanName)
+	triggerSpanCtx, triggerSpan := t.triggerSpanTracer.Start(triggerCtx, traces.TriggerSpanName)
 	defer triggerSpan.End()
 
 	triggerSpan.SpanContext().TraceState().Insert("tracetest", "true")

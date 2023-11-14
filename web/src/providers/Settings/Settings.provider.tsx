@@ -1,9 +1,8 @@
 import {noop} from 'lodash';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
-import {useCreateSettingMutation, useUpdateSettingMutation} from 'redux/apis/TraceTest.api';
+import TracetestAPI from 'redux/apis/Tracetest';
 import {TDraftResource} from 'types/Settings.types';
-import {useConfirmationModal} from '../ConfirmationModal/ConfirmationModal.provider';
 import {useNotification} from '../Notification/Notification.provider';
 
 interface IContext {
@@ -20,10 +19,11 @@ interface IProps {
 export const useSettings = () => useContext(Context);
 
 const SettingsProvider = ({children}: IProps) => {
+  const {useCreateSettingMutation, useUpdateSettingMutation} = TracetestAPI.instance;
+
   const {showNotification} = useNotification();
   const [createSetting, {isLoading: isLoadingCreate}] = useCreateSettingMutation();
   const [updateSetting, {isLoading: isLoadingUpdate}] = useUpdateSettingMutation();
-  const {onOpen: onOpenConfirmation} = useConfirmationModal();
 
   const onSaveResource = useCallback(
     async (resource: TDraftResource) => {
@@ -37,19 +37,12 @@ const SettingsProvider = ({children}: IProps) => {
   );
 
   const onSubmit = useCallback(
-    (resources: TDraftResource[]) => {
-      onOpenConfirmation({
-        title: <p>Are you sure you want to save this Setting?</p>,
-        heading: 'Save Confirmation',
-        okText: 'Save',
-        onConfirm: async () => {
-          await Promise.all(resources.map(resource => onSaveResource(resource)));
+    async (resources: TDraftResource[]) => {
+      await Promise.all(resources.map(resource => onSaveResource(resource)));
 
-          showNotification({type: 'success', title: 'Settings saved', description: 'Your settings were saved'});
-        },
-      });
+      showNotification({type: 'success', title: 'Settings saved', description: 'Your settings were saved'});
     },
-    [onOpenConfirmation, onSaveResource, showNotification]
+    [onSaveResource, showNotification]
   );
 
   const value = useMemo<IContext>(

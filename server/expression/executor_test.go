@@ -1,21 +1,28 @@
 package expression_test
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/kubeshop/tracetest/server/expression"
-	"github.com/kubeshop/tracetest/server/model"
+	"github.com/kubeshop/tracetest/server/traces"
+	"github.com/kubeshop/tracetest/server/variableset"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type executorTestCase struct {
-	Name       string
-	Query      string
-	ShouldPass bool
+	Name                 string
+	Query                string
+	ShouldPass           bool
+	ExpectedErrorMessage string
 
 	AttributeDataStore      expression.DataStore
 	MetaAttributesDataStore expression.DataStore
+	VariableDataStore       expression.DataStore
 }
 
 func TestBasicExpressionExecution(t *testing.T) {
@@ -95,9 +102,22 @@ func TestAttributeExecution(t *testing.T) {
 			ShouldPass: true,
 
 			AttributeDataStore: expression.AttributeDataStore{
-				Span: model.Span{
-					Attributes: model.Attributes{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
 						"my_attribute": "42",
+					},
+				},
+			},
+		},
+		{
+			Name:       "should_get_values_from_attributes_with_dashes",
+			Query:      "attr:dapr-app-id = 42",
+			ShouldPass: true,
+
+			AttributeDataStore: expression.AttributeDataStore{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
+						"dapr-app-id": "42",
 					},
 				},
 			},
@@ -114,8 +134,8 @@ func TestStringInterpolationExecution(t *testing.T) {
 			Query:      `attr:text = 'this run took ${"25ms"}'`,
 			ShouldPass: true,
 			AttributeDataStore: expression.AttributeDataStore{
-				Span: model.Span{
-					Attributes: model.Attributes{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
 						"text": "this run took 25ms",
 					},
 				},
@@ -138,8 +158,8 @@ func TestFilterExecution(t *testing.T) {
 			Query:      `attr:tracetest.response.body | json_path '.id' = 8`,
 			ShouldPass: true,
 			AttributeDataStore: expression.AttributeDataStore{
-				Span: model.Span{
-					Attributes: model.Attributes{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
 						"tracetest.response.body": `{"id": 8, "name": "john doe"}`,
 					},
 				},
@@ -178,7 +198,7 @@ func TestMetaAttributesExecution(t *testing.T) {
 			ShouldPass:         true,
 			AttributeDataStore: expression.AttributeDataStore{},
 			MetaAttributesDataStore: expression.MetaAttributesDataStore{
-				SelectedSpans: []model.Span{
+				SelectedSpans: []traces.Span{
 					// We don't have to fill the spans details to make the meta attribute work
 					{},
 					{},
@@ -192,7 +212,7 @@ func TestMetaAttributesExecution(t *testing.T) {
 			ShouldPass:         true,
 			AttributeDataStore: expression.AttributeDataStore{},
 			MetaAttributesDataStore: expression.MetaAttributesDataStore{
-				SelectedSpans: []model.Span{
+				SelectedSpans: []traces.Span{
 					{},
 					{},
 				},
@@ -224,6 +244,26 @@ func TestFunctionExecution(t *testing.T) {
 			Name:       "should_generate_a_random_int_and_fail_comparison",
 			Query:      `randomInt(10,20) < 10`,
 			ShouldPass: false,
+		},
+		{
+			Name:       "should_generate_date_string",
+			Query:      fmt.Sprintf(`date() = "%s"`, time.Now().Format(time.DateOnly)),
+			ShouldPass: true,
+		},
+		{
+			Name:       "should_generate_date_string",
+			Query:      fmt.Sprintf(`date("DD/MM/YYYY") = "%s"`, time.Now().Format("02/01/2006")),
+			ShouldPass: true,
+		},
+		{
+			Name:       "should_generate_date_string",
+			Query:      fmt.Sprintf(`dateTime() = "%s"`, time.Now().Format(time.RFC3339)),
+			ShouldPass: true,
+		},
+		{
+			Name:       "should_generate_date_string",
+			Query:      fmt.Sprintf(`dateTime("DD/MM/YYYY hh:mm") = "%s"`, time.Now().Format("02/01/2006 15:04")),
+			ShouldPass: true,
 		},
 	}
 
@@ -270,6 +310,11 @@ func TestArrayExecution(t *testing.T) {
 		{
 			Name:       "arrays_can_be_compared_with_other_arrays_generated_by_filters",
 			Query:      `'{ "array": [{ "name": "john", "age": 37 }, { "name": "jonas", "age": 38 }]}' | json_path '$.array[*].age' = [37, 38]`,
+			ShouldPass: true,
+		},
+		{
+			Name:       "arrays_can_be_filtered_by_value",
+			Query:      `'[{ "name": "john", "age": 37 }, { "name": "jonas", "age": 38 }]' | json_path '$[?(@.name == "john")].age' = 37`,
 			ShouldPass: true,
 		},
 		{
@@ -330,8 +375,8 @@ func TestResolveStatementAttributeExecution(t *testing.T) {
 			ShouldPass: true,
 
 			AttributeDataStore: expression.AttributeDataStore{
-				Span: model.Span{
-					Attributes: model.Attributes{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
 						"my_attribute": "42",
 					},
 				},
@@ -349,8 +394,8 @@ func TestResolveStatementStringInterpolationExecution(t *testing.T) {
 			Query:      `'this run took ${"25ms"}'`,
 			ShouldPass: true,
 			AttributeDataStore: expression.AttributeDataStore{
-				Span: model.Span{
-					Attributes: model.Attributes{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
 						"text": "this run took 25ms",
 					},
 				},
@@ -373,8 +418,8 @@ func TestResolveStatementFilterExecution(t *testing.T) {
 			Query:      `attr:tracetest.response.body`,
 			ShouldPass: true,
 			AttributeDataStore: expression.AttributeDataStore{
-				Span: model.Span{
-					Attributes: model.Attributes{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
 						"tracetest.response.body": `{"id": 8, "name": "john doe"}`,
 					},
 				},
@@ -405,19 +450,96 @@ func TestResolveStatementFilterExecution(t *testing.T) {
 	executeResolveStatementTestCases(t, testCases)
 }
 
+func TestFailureCases(t *testing.T) {
+	testCases := []executorTestCase{
+		{
+			Name:                 "should_report_missing_environment_variable",
+			Query:                `env:test = "abc"`,
+			ShouldPass:           false,
+			ExpectedErrorMessage: `resolution error: variable "test" not found`,
+
+			VariableDataStore: expression.VariableDataStore{
+				Values: []variableset.VariableSetValue{},
+			},
+		},
+		{
+			Name:                 "should_report_missing_environment_variable",
+			Query:                `var:host = "abc"`,
+			ShouldPass:           false,
+			ExpectedErrorMessage: `resolution error: variable "host" not found`,
+
+			VariableDataStore: expression.VariableDataStore{
+				Values: []variableset.VariableSetValue{},
+			},
+		},
+		{
+			Name:                 "should_report_missing_attribute",
+			Query:                `attr:my_attribute = "abc"`,
+			ShouldPass:           false,
+			ExpectedErrorMessage: `resolution error: attribute "my_attribute" not found`,
+
+			AttributeDataStore: expression.AttributeDataStore{
+				Span: traces.Span{
+					Attributes: traces.Attributes{
+						"attr1": "1",
+						"attr2": "2",
+					},
+				},
+			},
+		},
+		{
+			Name:                 "should_report_missing_filter",
+			Query:                `"value" | missingFilter = "abc"`,
+			ShouldPass:           false,
+			ExpectedErrorMessage: `resolution error: filter "missingFilter" not found`,
+		},
+		{
+			Name:                 "should_report_problem_resolving_array_item",
+			Query:                `["value", env:test, "anotherValue"] | get_index 0`,
+			ShouldPass:           false,
+			ExpectedErrorMessage: `resolution error: at index 1 of array: variable "test" not found`,
+
+			VariableDataStore: expression.VariableDataStore{
+				Values: []variableset.VariableSetValue{},
+			},
+		},
+		{
+			Name:                 "should_report_problem_resolving_array_item",
+			Query:                `["value", var:host, "anotherValue"] | get_index 0`,
+			ShouldPass:           false,
+			ExpectedErrorMessage: `resolution error: at index 1 of array: variable "host" not found`,
+
+			VariableDataStore: expression.VariableDataStore{
+				Values: []variableset.VariableSetValue{},
+			},
+		},
+	}
+
+	executeResolveStatementTestCases(t, testCases)
+}
+
 func executeResolveStatementTestCases(t *testing.T, testCases []executorTestCase) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			executor := expression.NewExecutor(
 				testCase.AttributeDataStore,
 				testCase.MetaAttributesDataStore,
+				testCase.VariableDataStore,
 			)
 			left, err := executor.ResolveStatement(testCase.Query)
 			debugMessage := fmt.Sprintf("left value: %s", left)
 			if testCase.ShouldPass {
 				assert.NoError(t, err, debugMessage)
 			} else {
-				assert.Error(t, err, debugMessage)
+				require.Error(t, err, debugMessage)
+				if testCase.ExpectedErrorMessage != "" {
+					assert.Equal(t, testCase.ExpectedErrorMessage, err.Error())
+					// all validation erros should be ErrExpressionResolution errors
+					assert.ErrorIs(t, err, expression.ErrExpressionResolution)
+
+					errorMessageDoesntStartWithResolutionError := !strings.HasPrefix(errors.Unwrap(err).Error(), "resolution error:")
+					assert.True(t, errorMessageDoesntStartWithResolutionError)
+				}
 			}
 		})
 	}

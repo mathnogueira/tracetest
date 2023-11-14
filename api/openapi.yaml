@@ -6,255 +6,168 @@ info:
 servers:
   - url: /api
 paths:
-  /definition.yaml:
-    post:
-      tags:
-        - api
-      summary: "Execute a definition"
-      description: "Execute a definition"
-      operationId: executeDefinition
-      requestBody:
-        content:
-          text/json:
-            schema:
-              $ref: "./definition.yaml#/components/schemas/TextDefinition"
-      responses:
-        201:
-          description: Definition created
-          content:
-            application/json:
-              schema:
-                $ref: "./definition.yaml#/components/schemas/ExecuteDefinitionResponse"
-        200:
-          description: Definition updated
-          content:
-            application/json:
-              schema:
-                $ref: "./definition.yaml#/components/schemas/ExecuteDefinitionResponse"
-
-    put:
-      tags:
-        - api
-      summary: "Upsert a definition"
-      description: "Upsert a definition"
-      operationId: upsertDefinition
-      requestBody:
-        content:
-          text/json:
-            schema:
-              $ref: "./definition.yaml#/components/schemas/TextDefinition"
-      responses:
-        201:
-          description: Definition created
-          content:
-            application/json:
-              schema:
-                $ref: "./definition.yaml#/components/schemas/UpsertDefinitionResponse"
-        200:
-          description: Definition updated
-          content:
-            application/json:
-              schema:
-                $ref: "./definition.yaml#/components/schemas/UpsertDefinitionResponse"
-
-  # Transactions
-  /transactions:
+  # TestSuites
+  /testsuites:
     get:
       tags:
-        - api
-      summary: "Get transactions"
-      description: "get transactions"
-      operationId: getTransactions
+        - resource-api
+      summary: "Get testsuites"
+      description: "get testsuites"
+      operationId: getTestSuites
       parameters:
-        - in: query
-          name: take
-          description: "indicates how many transactions can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many transactions will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: query
-          description: "query to search transactions, based on transaction name and description"
-          schema:
-            type: string
-        - in: query
-          name: sortBy
-          description: "indicates the sort field for the transactions"
-          schema:
-            type: string
-            enum: [created, name, last_run]
-        - in: query
-          name: sortDirection
-          description: "indicates the sort direction for the transactions"
-          schema:
-            type: string
-            enum: [asc, desc]
-      responses:
-        200:
-          description: successful operation
-          headers:
-            X-Total-Count:
-              schema:
-                type: integer
-              description: Total records count
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "./transactions.yaml#/components/schemas/Transaction"
-        500:
-          description: "problem with getting transactions"
-    post:
-      tags:
-        - api
-      summary: "Create new transaction"
-      description: "Create new transaction"
-      operationId: createTransaction
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "./transactions.yaml#/components/schemas/Transaction"
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/query"
+        - $ref: "./parameters.yaml#/components/parameters/runnableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
       responses:
         200:
           description: successful operation
           content:
             application/json:
               schema:
-                $ref: "./transactions.yaml#/components/schemas/Transaction"
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResourceList"
+            text/yaml:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
         400:
-          description: "trying to create a transaction with an already existing ID"
-  /transactions/{transactionId}:
+          description: "invalid query for testsuites, some data was sent in incorrect format."
+        500:
+          description: "problem with getting testsuites"
+    post:
+      tags:
+        - resource-api
+      summary: "Create new TestSuite"
+      description: "Create new TestSuite"
+      operationId: createTestSuite
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+          text/yaml:
+            schema:
+              $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+      responses:
+        201:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+            text/yaml:
+              schema:
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+        400:
+          description: "trying to create a TestSuite with an already existing ID"
+        500:
+          description: "problem creating a TestSuite"
+  /testsuites/{testSuiteId}:
     get:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-      summary: "get transaction"
-      description: "get transaction"
-      operationId: getTransaction
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+      summary: "get TestSuite"
+      description: "get TestSuite"
+      operationId: getTestSuite
       responses:
         200:
           description: successful operation
           content:
             application/json:
               schema:
-                $ref: "./transactions.yaml#/components/schemas/Transaction"
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+            text/yaml:
+              schema:
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+        404:
+          description: "TestSuite not found"
         500:
-          description: "problem with getting a transaction"
+          description: "problem getting an TestSuite"
     put:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-      summary: "update transaction"
-      description: "update transaction action"
-      operationId: updateTransaction
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+      summary: "update TestSuite"
+      description: "update TestSuite action"
+      operationId: updateTestSuite
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "./transactions.yaml#/components/schemas/Transaction"
+              $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+          text/yaml:
+            schema:
+              $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+            text/yaml:
+              schema:
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteResource"
+        400:
+          description: "invalid TestSuite, some data was sent in incorrect format."
+        404:
+          description: "TestSuite not found"
+        500:
+          description: "problem updating a TestSuite"
+    delete:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+      summary: "delete a TestSuite"
+      description: "delete a TestSuite"
+      operationId: deleteTestSuite
       responses:
         204:
           description: successful operation
+        404:
+          description: "TestSuite not found"
         500:
-          description: "problem with updating transaction"
-    delete:
-      tags:
-        - api
-      parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-      summary: "delete a transaction"
-      description: "delete a transaction"
-      operationId: deleteTransaction
-      responses:
-        "204":
-          description: OK
-  /transactions/{transactionId}/version/{version}:
+          description: "problem deleting a TestSuite"
+  /testsuites/{testSuiteId}/version/{version}:
     get:
       tags:
         - api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: version
-          schema:
-            type: integer
-          required: true
-      summary: "get a transaction specific version"
-      description: "get a transaction specific version"
-      operationId: getTransactionVersion
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+        - $ref: "./parameters.yaml#/components/parameters/version"
+      summary: "get a TestSuite specific version"
+      description: "get a TestSuite specific version"
+      operationId: getTestSuiteVersion
       responses:
         200:
           description: successful operation
           content:
             application/json:
               schema:
-                $ref: "./transactions.yaml#/components/schemas/Transaction"
+                $ref: "./testsuites.yaml#/components/schemas/TestSuite"
         500:
           description: "problem with getting a test"
-  /transactions/{transactionId}/version/{version}/definition.yaml:
-    get:
-      tags:
-        - api
-      parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: version
-          schema:
-            type: integer
-          required: true
-      summary: Get the transaction definition as an YAML file
-      description: Get the transaction as an YAML file
-      operationId: getTransactionVersionDefinitionFile
-      responses:
-        200:
-          description: OK
-          content:
-            application/yaml:
-              schema:
-                type: string
-  /transactions/{transactionId}/run:
+
+  /testsuites/{testSuiteId}/run:
     post:
       tags:
         - api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-      summary: "run transaction"
-      description: "run a particular transaction"
-      operationId: runTransaction
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+      summary: "run TestSuite"
+      description: "run a particular TestSuite"
+      operationId: runTestSuite
       requestBody:
         content:
           application/json:
@@ -266,31 +179,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./transactions.yaml#/components/schemas/TransactionRun"
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteRun"
     get:
       tags:
         - api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: take
-          description: "indicates how many results can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many results will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
-      summary: "Get all runs from a particular transaction"
-      description: "Get all runs from a particular transaction"
-      operationId: getTransactionRuns
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+      summary: "Get all runs from a particular TestSuite"
+      description: "Get all runs from a particular TestSuite"
+      operationId: getTestSuiteRuns
       responses:
         200:
           description: OK
@@ -299,115 +198,73 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "./transactions.yaml#/components/schemas/TransactionRun"
-  /transactions/{transactionId}/run/{runId}:
+                  $ref: "./testsuites.yaml#/components/schemas/TestSuiteRun"
+  /testsuites/{testSuiteId}/run/{runId}:
     get:
       tags:
         - api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: integer
-          required: true
-      summary: "Get a specific run from a particular transaction"
-      description: "Get a specific run from a particular transaction"
-      operationId: getTransactionRun
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
+      summary: "Get a specific run from a particular TestSuite"
+      description: "Get a specific run from a particular TestSuite"
+      operationId: getTestSuiteRun
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: "./transactions.yaml#/components/schemas/TransactionRun"
+                $ref: "./testsuites.yaml#/components/schemas/TestSuiteRun"
         404:
-          description: transaction run not found
+          description: TestSuite run not found
 
     delete:
       tags:
         - api
       parameters:
-        - in: path
-          name: transactionId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: integer
-          required: true
-      summary: "Delete a specific run from a particular transaction"
-      description: "Delete a specific run from a particular transaction"
-      operationId: deleteTransactionRun
+        - $ref: "./parameters.yaml#/components/parameters/testSuiteId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
+      summary: "Delete a specific run from a particular TestSuite"
+      description: "Delete a specific run from a particular TestSuite"
+      operationId: deleteTestSuiteRun
       responses:
         204:
           description: OK
         404:
-          description: transaction run not found
+          description: TestSuite run not found
 
   # Tests
   /tests:
     get:
       tags:
-        - api
+        - resource-api
       summary: "Get tests"
       description: "get tests"
       operationId: getTests
       parameters:
-        - in: query
-          name: take
-          description: "indicates how many tests can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many tests will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: query
-          description: "query to search tests, based on test name and description"
-          schema:
-            type: string
-        - in: query
-          name: sortBy
-          description: "indicates the sort field for the tests"
-          schema:
-            type: string
-            enum: [created, name, last_run]
-        - in: query
-          name: sortDirection
-          description: "indicates the sort direction for the tests"
-          schema:
-            type: string
-            enum: [asc, desc]
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/query"
+        - $ref: "./parameters.yaml#/components/parameters/runnableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
       responses:
         200:
           description: successful operation
-          headers:
-            X-Total-Count:
-              schema:
-                type: integer
-              description: Total records count
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "./tests.yaml#/components/schemas/Test"
+                $ref: "./tests.yaml#/components/schemas/TestResourceList"
+            text/yaml:
+              schema:
+                $ref: "./tests.yaml#/components/schemas/TestResourceList"
+        400:
+          description: "invalid query for test, some data was sent in incorrect format."
         500:
           description: "problem with getting tests"
     post:
       tags:
-        - api
+        - resource-api
       summary: "Create new test"
       description: "Create new test action"
       operationId: createTest
@@ -428,34 +285,25 @@ paths:
   /tests/{testId}:
     get:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
       summary: "get test"
       description: "get test"
-      operationId: getTest
       responses:
         200:
           description: successful operation
           content:
             application/json:
               schema:
-                $ref: "./tests.yaml#/components/schemas/Test"
+                $ref: "./tests.yaml#/components/schemas/TestResource"
         500:
           description: "problem with getting a test"
     put:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
       summary: "update test"
       description: "update test action"
       operationId: updateTest
@@ -471,13 +319,9 @@ paths:
           description: "problem with updating test"
     delete:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
       summary: "delete a test"
       description: "delete a test"
       operationId: deleteTest
@@ -489,11 +333,7 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
       summary: "run test"
       description: "run a particular test"
       operationId: runTest
@@ -519,23 +359,9 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: take
-          description: "indicates how many results can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many results will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
       summary: "get the runs for a test"
       description: "get the runs from a particular test"
       operationId: getTestRuns
@@ -558,20 +384,9 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: query
-          schema:
-            type: string
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
+        - $ref: "./parameters.yaml#/components/parameters/query"
       summary: "retrieve spans that will be selected by selector"
       description: "get the spans ids that would be selected by a specific selector query"
       operationId: getTestResultSelectedSpans
@@ -587,16 +402,8 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
       summary: "run given assertions against the traces from the given run without persisting anything"
       description: "use this method to test a definition against an actual trace without creating a new version or persisting anything"
       operationId: dryRunAssertion
@@ -617,16 +424,8 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
       summary: "rerun a test run"
       description: "rerun a test run"
       operationId: rerunTestRun
@@ -642,16 +441,8 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
       summary: "get test run results in JUnit xml format"
       description: "get test run results in JUnit xml format"
       operationId: getRunResultJUnit
@@ -667,16 +458,8 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
       summary: export test and test run information
       description: export test and test run information for debugging
       operationId: exportTestRun
@@ -711,16 +494,8 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
       summary: "get test Run"
       description: "get a particular test Run"
       operationId: getTestRun
@@ -735,32 +510,43 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: runId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
       summary: "delete a test run"
       description: "delete a test run"
       operationId: deleteTestRun
       responses:
         "204":
           description: OK
+    # TODO: remove this as soon as we refactor our queues
+    patch:
+      tags:
+        - api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
+      summary: "update a test run"
+      description: "update a test run"
+      operationId: updateTestRun
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./tests.yaml#/components/schemas/TestRun"
+      responses:
+        200:
+          description: successfuly updated the test run
+          content:
+            application/json:
+              schema:
+                $ref: "./tests.yaml#/components/schemas/TestRun"
+
   /tests/{testId}/definition:
     get:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
       operationId: getTestSpecs
       summary: "Get definition for a test"
       description: "Gets definition for a test"
@@ -778,16 +564,8 @@ paths:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: version
-          schema:
-            type: integer
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/version"
       summary: "get a test specific version"
       description: "get a test specific version"
       operationId: getTestVersion
@@ -800,185 +578,42 @@ paths:
                 $ref: "./tests.yaml#/components/schemas/Test"
         500:
           description: "problem with getting a test"
-  /tests/{testId}/version/{version}/definition.yaml:
-    get:
+  /tests/{testId}/run/{runId}/stop:
+    post:
       tags:
         - api
       parameters:
-        - in: path
-          name: testId
-          schema:
-            type: string
-          required: true
-        - in: path
-          name: version
-          schema:
-            type: integer
-          required: true
-      summary: Get the test definition as an YAML file
-      description: Get the test definition as an YAML file
-      operationId: getTestVersionDefinitionFile
-      responses:
-        200:
-          description: OK
-          content:
-            application/yaml:
-              schema:
-                type: string
-
-  # Environments
-  /environments:
-    get:
-      tags:
-        - api
-      summary: "Get Environments"
-      description: "Get Environments"
-      operationId: getEnvironments
-      parameters:
-        - in: query
-          name: take
-          description: "indicates how many environments can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many environments will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: query
-          description: "query to search environments, based on environments name and description"
-          schema:
-            type: string
-        - in: query
-          name: sortBy
-          description: "indicates the sort field for the environments"
-          schema:
-            type: string
-            enum: [created, name]
-        - in: query
-          name: sortDirection
-          description: "indicates the sort direction for the environments"
-          schema:
-            type: string
-            enum: [asc, desc]
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
+      summary: "stops the execution of a test run"
+      description: "stops the execution of a test run"
+      operationId: stopTestRun
       responses:
         200:
           description: successful operation
-          headers:
-            X-Total-Count:
-              schema:
-                type: integer
-              description: Total records count
+        422:
+          description: could not stop execution, probably it's not running anymore
+
+  # Test events
+  /tests/{testId}/run/{runId}/events:
+    get:
+      tags:
+        - api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/testId"
+        - $ref: "./parameters.yaml#/components/parameters/runId"
+      summary: "get events from a test run"
+      description: "get events from a test run"
+      operationId: getTestRunEvents
+      responses:
+        200:
+          description: successful operation
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "./environments.yaml#/components/schemas/Environment"
-        500:
-          description: "problem with getting environments"
-    post:
-      tags:
-        - api
-      summary: "Create new environment"
-      description: "Create new environment action"
-      operationId: createEnvironment
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "./environments.yaml#/components/schemas/Environment"
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "./environments.yaml#/components/schemas/Environment"
-        400:
-          description: "trying to create a environment with an already existing ID"
-  /environments/{environmentId}:
-    get:
-      tags:
-        - api
-      parameters:
-        - in: path
-          name: environmentId
-          schema:
-            type: string
-          required: true
-      summary: "get environment"
-      description: "get environment"
-      operationId: getEnvironment
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "./environments.yaml#/components/schemas/Environment"
-        500:
-          description: "problem with getting a environment"
-    put:
-      tags:
-        - api
-      parameters:
-        - in: path
-          name: environmentId
-          schema:
-            type: string
-          required: true
-      summary: "update environment"
-      description: "update environment action"
-      operationId: updateEnvironment
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "./environments.yaml#/components/schemas/Environment"
-      responses:
-        204:
-          description: successful operation
-        500:
-          description: "problem with updating environment"
-    delete:
-      tags:
-        - api
-      parameters:
-        - in: path
-          name: environmentId
-          schema:
-            type: string
-          required: true
-      summary: "delete a environment"
-      description: "delete a environment"
-      operationId: deleteEnvironment
-      responses:
-        "204":
-          description: OK
-  /environments/{environmentId}/definition.yaml:
-    get:
-      tags:
-        - api
-      parameters:
-        - in: path
-          name: environmentId
-          schema:
-            type: string
-          required: true
-      summary: Get the environment definition as an YAML file
-      description: Get the environment as an YAML file
-      operationId: getEnvironmentDefinitionFile
-      responses:
-        200:
-          description: OK
-          content:
-            application/yaml:
-              schema:
-                type: string
+                  $ref: "./testEvents.yaml#/components/schemas/TestRunEvent"
 
   # Expressions
   /expressions/resolve:
@@ -1001,7 +636,7 @@ paths:
               schema:
                 $ref: "./expressions.yaml#/components/schemas/ResolveResponseInfo"
 
-  # Resources (Tests, Transactions)
+  # Resources (Tests, TestSuites)
   /resources:
     get:
       tags:
@@ -1010,35 +645,11 @@ paths:
       description: "get resources"
       operationId: getResources
       parameters:
-        - in: query
-          name: take
-          description: "indicates how many transactions can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many transactions will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: query
-          description: "query to search transactions, based on transaction name and description"
-          schema:
-            type: string
-        - in: query
-          name: sortBy
-          description: "indicates the sort field for the transactions"
-          schema:
-            type: string
-            enum: [created, name, last_run]
-        - in: query
-          name: sortDirection
-          description: "indicates the sort direction for the transactions"
-          schema:
-            type: string
-            enum: [asc, desc]
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/query"
+        - $ref: "./parameters.yaml#/components/parameters/runnableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
       responses:
         200:
           description: successful operation
@@ -1074,17 +685,36 @@ paths:
             application/json:
               schema:
                 $ref: "./config.yaml#/components/schemas/TestConnectionResponse"
-  /config/{configId}:
+  /configs:
     get:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: configId
-          schema:
-            type: string
-          required: true
-          description: "ID of the configuration resource used on Tracetest. It should be set as 'current'."
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/switchableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
+      summary: "List Tracetest configuration"
+      description: "List Tracetest configuration"
+      operationId: listConfiguration
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./config.yaml#/components/schemas/ConfigurationResourceList"
+            text/yaml:
+              schema:
+                $ref: "./config.yaml#/components/schemas/ConfigurationResourceList"
+        500:
+          description: "problem getting the configuration list"
+  /configs/{configId}:
+    get:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/configId"
       summary: "Get Tracetest configuration"
       description: "Get Tracetest configuration"
       operationId: getConfiguration
@@ -1104,12 +734,7 @@ paths:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: configId
-          schema:
-            type: string
-          required: true
-          description: "ID of the configuration resource used on Tracetest. It should be set as 'current'."
+        - $ref: "./parameters.yaml#/components/parameters/configId"
       summary: "Update Tracetest configuration"
       description: "Update Tracetest configuration"
       operationId: updateConfiguration
@@ -1134,99 +759,37 @@ paths:
         500:
           description: "problem updating configuration"
 
-  # Polling Profile
-  /pollingprofile:
+  /pollingprofiles:
     get:
       tags:
         - resource-api
-      summary: "List Polling Profiles"
-      description: "List polling profiles used on Tracetest to configure how to fetch traces in a test."
-      operationId: listPollingProfiles
       parameters:
-        - in: query
-          name: take
-          description: "Indicates the maximum number of polling profiles that can be returned on this call."
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "Indicates how many polling profiles will be skipped when paginating."
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: sortBy
-          description: "Indicates the sort field for on which all polling profiles will be sorted."
-          schema:
-            type: string
-            enum: [id, name, strategy]
-        - in: query
-          name: sortDirection
-          description: "Indicates the sort direction for the polling profiles (ascending or descending)."
-          schema:
-            type: string
-            enum: [asc, desc]
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/switchableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
+      summary: "List Polling Profile Configuration"
+      description: "List Polling Profile configuration"
+      operationId: listPollingProfile
       responses:
         200:
           description: successful operation
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  count:
-                    type: integer
-                  items:
-                    type: array
-                    items:
-                      $ref: "./config.yaml#/components/schemas/PollingProfile"
+                $ref: "./config.yaml#/components/schemas/PollingProfileList"
             text/yaml:
               schema:
-                type: array
-                items:
-                  $ref: "./config.yaml#/components/schemas/PollingProfile"
-        400:
-          description: "invalid query for polling profiles, some data was sent in incorrect format."
+                $ref: "./config.yaml#/components/schemas/PollingProfileList"
         500:
-          description: "problem listing polling profile"
-    post:
-      tags:
-        - resource-api
-      summary: "Create a Polling Profile"
-      description: "Create a polling profile used on Tracetest to configure how to fetch traces in a test."
-      operationId: createPollingProfile
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "./config.yaml#/components/schemas/PollingProfile"
-          text/yaml:
-            schema:
-              $ref: "./config.yaml#/components/schemas/PollingProfile"
-      responses:
-        201:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "./config.yaml#/components/schemas/PollingProfile"
-            text/yaml:
-              schema:
-                $ref: "./config.yaml#/components/schemas/PollingProfile"
-        500:
-          description: "problem creating a polling profile"
-  /pollingprofile/{pollingProfileId}:
+          description: "problem getting the polling profile list"
+  # Polling Profile
+  /pollingprofiles/{pollingProfileId}:
     get:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: pollingProfileId
-          schema:
-            type: string
-          required: true
-          description: "ID of a polling profile used on Tracetest to configure how to fetch traces in a test."
+        - $ref: "./parameters.yaml#/components/parameters/pollingProfileId"
       summary: "Get Polling Profile"
       description: "Get a polling profile used on Tracetest to configure how to fetch traces in a test."
       operationId: getPollingProfile
@@ -1248,12 +811,7 @@ paths:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: pollingProfileId
-          schema:
-            type: string
-          required: true
-          description: "ID of a polling profile used on Tracetest to configure how to fetch traces in a test."
+        - $ref: "./parameters.yaml#/components/parameters/pollingProfileId"
       summary: "Update a Polling Profile"
       description: "Update a polling profile used on Tracetest to configure how to fetch traces in a test."
       operationId: updatePollingProfile
@@ -1281,31 +839,9 @@ paths:
           description: "polling profile not found"
         500:
           description: "problem updating a polling profile"
-    delete:
-      tags:
-        - resource-api
-      parameters:
-        - in: path
-          name: pollingProfileId
-          schema:
-            type: string
-          required: true
-          description: "ID of a polling profile used on Tracetest to configure how to fetch traces in a test."
-      summary: "Delete a Polling Profile"
-      description: "Delete a polling profile used on Tracetest to configure how to fetch traces in a test."
-      operationId: deletePollingProfile
-      responses:
-        204:
-          description: successful operation
-        400:
-          description: "invalid polling profile, some data was sent in incorrect format."
-        404:
-          description: "polling profile not found"
-        500:
-          description: "problem deleting a polling profile"
 
   # Demo
-  /demo:
+  /demos:
     get:
       tags:
         - resource-api
@@ -1313,44 +849,27 @@ paths:
       description: "List demonstrations used on Tracetest as quick start examples."
       operationId: listDemos
       parameters:
-        - in: query
-          name: take
-          description: "Indicates the maximum number of demos that can be returned on this call."
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "Indicates how many demos will be skipped when paginating."
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: sortBy
-          description: "Indicates the sort field for on which all demos will be sorted."
-          schema:
-            type: string
-            enum: [type, enabled]
-        - in: query
-          name: sortDirection
-          description: "Indicates the sort direction for the demos (ascending or descending)."
-          schema:
-            type: string
-            enum: [asc, desc]
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/switchableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
       responses:
         200:
           description: successful operation
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "./config.yaml#/components/schemas/Demo"
+                $ref: "./config.yaml#/components/schemas/DemoList"
             text/yaml:
               schema:
-                type: array
-                items:
-                  $ref: "./config.yaml#/components/schemas/Demo"
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: "./config.yaml#/components/schemas/Demo"
         400:
           description: "invalid query for demos, some data was sent in incorrect format."
         500:
@@ -1381,17 +900,12 @@ paths:
                 $ref: "./config.yaml#/components/schemas/Demo"
         500:
           description: "problem creating a demo"
-  /demo/{demoId}:
+  /demos/{demoId}:
     get:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: demoId
-          schema:
-            type: string
-          required: true
-          description: "ID of a demonstration used on Tracetest as quick start examples."
+        - $ref: "./parameters.yaml#/components/parameters/demoId"
       summary: "Get Demonstration setting"
       description: "Get a demonstration used on Tracetest as quick start examples."
       operationId: getDemo
@@ -1413,12 +927,7 @@ paths:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: demoId
-          schema:
-            type: string
-          required: true
-          description: "ID of a demonstration used on Tracetest as quick start examples."
+        - $ref: "./parameters.yaml#/components/parameters/demoId"
       summary: "Update a Demonstration setting"
       description: "Update a demonstration used on Tracetest as quick start examples."
       operationId: updateDemo
@@ -1450,12 +959,7 @@ paths:
       tags:
         - resource-api
       parameters:
-        - in: path
-          name: demoId
-          schema:
-            type: string
-          required: true
-          description: "ID of a demonstration used on Tracetest as quick start examples."
+        - $ref: "./parameters.yaml#/components/parameters/demoId"
       summary: "Delete a Demonstration setting"
       description: "Delete a demonstration used on Tracetest as quick start examples."
       operationId: deleteDemo
@@ -1469,90 +973,38 @@ paths:
         500:
           description: "problem deleting a demo"
 
-  # Data Stores
   /datastores:
     get:
       tags:
-        - api
-      summary: "Get all Data Stores"
-      description: "Get all Data Stores"
-      operationId: getDataStores
+        - resource-api
       parameters:
-        - in: query
-          name: take
-          description: "indicates how many data stores can be returned by each page"
-          schema:
-            type: integer
-            default: 20
-        - in: query
-          name: skip
-          description: "indicates how many data stores will be skipped when paginating"
-          schema:
-            type: integer
-            default: 0
-        - in: query
-          name: query
-          description: "query to search data stores, based on data store name"
-          schema:
-            type: string
-        - in: query
-          name: sortBy
-          description: "indicates the sort field for the data stores"
-          schema:
-            type: string
-            enum: [created, name]
-        - in: query
-          name: sortDirection
-          description: "indicates the sort direction for the data stores"
-          schema:
-            type: string
-            enum: [asc, desc]
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/switchableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
+      summary: "List Data Store"
+      description: "List Data Store"
+      operationId: listDataStore
       responses:
         200:
           description: successful operation
-          headers:
-            X-Total-Count:
-              schema:
-                type: integer
-              description: Total records count
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "./dataStores.yaml#/components/schemas/DataStore"
+                $ref: "./dataStores.yaml#/components/schemas/DataStoreList"
+            text/yaml:
+              schema:
+                $ref: "./dataStores.yaml#/components/schemas/DataStoreList"
         500:
-          description: "problem with getting data stores"
-    post:
-      tags:
-        - api
-      summary: "Create a new Data Store"
-      description: "Create a new Data Store"
-      operationId: createDataStore
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "./dataStores.yaml#/components/schemas/DataStore"
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "./dataStores.yaml#/components/schemas/DataStore"
-        400:
-          description: "trying to create a data store with an already existing ID"
+          description: "problem getting the data store list"
+
+  # Data Stores
   /datastores/{dataStoreId}:
     get:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: dataStoreId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/dataStoreId"
       summary: "Get a Data Store"
       description: "Get a Data Store"
       operationId: getDataStore
@@ -1562,18 +1014,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "./dataStores.yaml#/components/schemas/DataStore"
+                $ref: "./dataStores.yaml#/components/schemas/DataStoreResource"
+        404:
+          description: "data store not found"
         500:
           description: "problem with getting a data store"
     put:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: dataStoreId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/dataStoreId"
       summary: "Update a Data Store"
       description: "Update a Data Store"
       operationId: updateDataStore
@@ -1585,40 +1035,298 @@ paths:
       responses:
         204:
           description: successful operation
+        400:
+          description: "invalid data store, some data was sent in incorrect format."
         500:
           description: "problem with updating data store"
     delete:
       tags:
-        - api
+        - resource-api
       parameters:
-        - in: path
-          name: dataStoreId
-          schema:
-            type: string
-          required: true
+        - $ref: "./parameters.yaml#/components/parameters/dataStoreId"
       summary: "Delete a Data Store"
       description: "Delete a Data Store"
       operationId: deleteDataStore
       responses:
         "204":
           description: OK
-  /datastores/{dataStoreId}/definition.yaml:
+
+  # VariableSets
+  /variableSets:
+    get:
+      tags:
+        - resource-api
+      summary: "List VariableSets"
+      description: "List VariableSets available in Tracetest."
+      operationId: listVariableSets
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/switchableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResourceList"
+            text/yaml:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+        400:
+          description: "invalid query for VariableSets, some data was sent in incorrect format."
+        500:
+          description: "problem listing VariableSets"
+    post:
+      tags:
+        - resource-api
+      summary: "Create a VariableSet"
+      description: "Create a VariableSet that can be used by tests and test suites"
+      operationId: createVariableSet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+          text/yaml:
+            schema:
+              $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+      responses:
+        201:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+            text/yaml:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+        500:
+          description: "problem creating an VariableSet"
+
+  /variableSets/{variableSetId}:
+    get:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/variableSetId"
+      summary: "Get a specific VariableSet"
+      description: "Get one VariableSet by its id"
+      operationId: getVariableSet
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+            text/yaml:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+        404:
+          description: "VariableSet not found"
+        500:
+          description: "problem getting an VariableSet"
+    put:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/variableSetId"
+      summary: "Update a VariableSet"
+      description: "Update a VariableSet used on Tracetest"
+      operationId: updateVariableSet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+          text/yaml:
+            schema:
+              $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+            text/yaml:
+              schema:
+                $ref: "./variableSets.yaml#/components/schemas/VariableSetResource"
+        400:
+          description: "invalid VariableSet, some data was sent in incorrect format."
+        404:
+          description: "VariableSet not found"
+        500:
+          description: "problem updating an VariableSet"
+    delete:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/variableSetId"
+      summary: "Delete a variable set"
+      description: "Delete a variable set from Tracetest"
+      operationId: deleteVariableSet
+      responses:
+        204:
+          description: successful operation
+        400:
+          description: "invalid VariableSet, some data was sent in incorrect format."
+        404:
+          description: "VariableSet not found"
+        500:
+          description: "problem deleting an variable set"
+
+  /version.{fileExtension}:
     get:
       tags:
         - api
       parameters:
-        - in: path
-          name: dataStoreId
-          schema:
-            type: string
-          required: true
-      summary: Get the data store definition as an YAML file
-      description: Get the data store as an YAML file
-      operationId: getDataStoreDefinitionFile
+        - $ref: "./parameters.yaml#/components/parameters/fileExtension"
+      summary: "Get the version of the API"
+      description: "Get the version of the API"
+      operationId: getVersion
       responses:
         200:
-          description: OK
+          description: successful operation
           content:
-            application/yaml:
+            application/json:
               schema:
-                type: string
+                $ref: "./version.yaml#/components/schemas/Version"
+        500:
+          description: "problem getting the version of the API"
+
+  # Linters
+  /linters:
+    get:
+      tags:
+        - resource-api
+      summary: "List Linters"
+      description: "List Linters available in Tracetest."
+      operationId: listLinters
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/take"
+        - $ref: "./parameters.yaml#/components/parameters/skip"
+        - $ref: "./parameters.yaml#/components/parameters/switchableResourceSortBy"
+        - $ref: "./parameters.yaml#/components/parameters/sortDirection"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResourceList"
+            text/yaml:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResourceList"
+        400:
+          description: "invalid query for Linters, some data was sent in incorrect format."
+        500:
+          description: "problem listing Linters"
+    post:
+      tags:
+        - resource-api
+      summary: "Create an Linter"
+      description: "Create an Linter that can be used by tests and Linters"
+      operationId: createLinter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./linters.yaml#/components/schemas/LinterResource"
+          text/yaml:
+            schema:
+              $ref: "./linters.yaml#/components/schemas/LinterResource"
+      responses:
+        201:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResource"
+            text/yaml:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResource"
+        500:
+          description: "problem creating an Linter"
+
+  /linters/{LinterId}:
+    get:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/LinterId"
+      summary: "Get a specific Linter"
+      description: "Get one Linter by its id"
+      operationId: getLinter
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResource"
+            text/yaml:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResource"
+        404:
+          description: "Linter not found"
+        500:
+          description: "problem getting a Linter"
+    put:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/LinterId"
+      summary: "Update a Linter"
+      description: "Update a Linter used on Tracetest"
+      operationId: updateLinter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "./linters.yaml#/components/schemas/LinterResource"
+          text/yaml:
+            schema:
+              $ref: "./linters.yaml#/components/schemas/LinterResource"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResource"
+            text/yaml:
+              schema:
+                $ref: "./linters.yaml#/components/schemas/LinterResource"
+        400:
+          description: "invalid Linter, some data was sent in incorrect format."
+        404:
+          description: "Linter not found"
+        500:
+          description: "problem updating an Linter"
+    delete:
+      tags:
+        - resource-api
+      parameters:
+        - $ref: "./parameters.yaml#/components/parameters/LinterId"
+      summary: "Delete an Linter"
+      description: "Delete an Linter from Tracetest"
+      operationId: deleteLinter
+      responses:
+        204:
+          description: successful operation
+        400:
+          description: "invalid Linter, some data was sent in incorrect format."
+        404:
+          description: "Linter not found"
+        500:
+          description: "problem deleting an Linter"

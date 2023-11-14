@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kubeshop/tracetest/server/id"
+	"github.com/kubeshop/tracetest/server/datastore"
 	tempopb "github.com/kubeshop/tracetest/server/internal/proto-gen-go/tempo-idl"
 	"github.com/kubeshop/tracetest/server/model"
+	"github.com/kubeshop/tracetest/server/pkg/id"
 	"github.com/kubeshop/tracetest/server/tracedb/connection"
 	"github.com/kubeshop/tracetest/server/tracedb/datasource"
 	"github.com/kubeshop/tracetest/server/traces"
@@ -22,7 +23,7 @@ import (
 )
 
 func tempoDefaultPorts() []string {
-	return []string{"9095"}
+	return []string{"9095", ""}
 }
 
 type tempoTraceDB struct {
@@ -30,7 +31,7 @@ type tempoTraceDB struct {
 	dataSource datasource.DataSource
 }
 
-func newTempoDB(config *model.BaseClientConfig) (TraceDB, error) {
+func newTempoDB(config *datastore.MultiChannelClientConfig) (TraceDB, error) {
 	dataSource := datasource.New("Tempo", config, datasource.Callbacks{
 		HTTP: httpGetTraceByID,
 		GRPC: grpcGetTraceByID,
@@ -45,7 +46,11 @@ func (tdb *tempoTraceDB) Connect(ctx context.Context) error {
 	return tdb.dataSource.Connect(ctx)
 }
 
-func (ttd *tempoTraceDB) TestConnection(ctx context.Context) connection.ConnectionTestResult {
+func (ttd *tempoTraceDB) GetEndpoints() string {
+	return ttd.dataSource.Endpoint()
+}
+
+func (ttd *tempoTraceDB) TestConnection(ctx context.Context) model.ConnectionResult {
 	tester := connection.NewTester(
 		connection.WithPortLintingTest(connection.PortLinter("Tempo", tempoDefaultPorts(), ttd.dataSource.Endpoint())),
 		connection.WithConnectivityTest(ttd.dataSource),
@@ -67,7 +72,7 @@ func (ttd *tempoTraceDB) Ready() bool {
 	return ttd.dataSource.Ready()
 }
 
-func (ttd *tempoTraceDB) GetTraceByID(ctx context.Context, traceID string) (model.Trace, error) {
+func (ttd *tempoTraceDB) GetTraceByID(ctx context.Context, traceID string) (traces.Trace, error) {
 	trace, err := ttd.dataSource.GetTraceByID(ctx, traceID)
 	return trace, err
 }
@@ -76,27 +81,27 @@ func (ttd *tempoTraceDB) Close() error {
 	return ttd.dataSource.Close()
 }
 
-func grpcGetTraceByID(ctx context.Context, traceID string, conn *grpc.ClientConn) (model.Trace, error) {
+func grpcGetTraceByID(ctx context.Context, traceID string, conn *grpc.ClientConn) (traces.Trace, error) {
 	query := tempopb.NewQuerierClient(conn)
 
 	trID, err := trace.TraceIDFromHex(traceID)
 	if err != nil {
-		return model.Trace{}, err
+		return traces.Trace{}, err
 	}
 
 	resp, err := query.FindTraceByID(ctx, &tempopb.TraceByIDRequest{
 		TraceID: []byte(trID[:]),
 	})
 	if err != nil {
-		return model.Trace{}, handleError(err)
+		return traces.Trace{}, handleError(err)
 	}
 
 	if resp.Trace == nil {
-		return model.Trace{}, connection.ErrTraceNotFound
+		return traces.Trace{}, connection.ErrTraceNotFound
 	}
 
 	if len(resp.Trace.Batches) == 0 {
-		return model.Trace{}, connection.ErrTraceNotFound
+		return traces.Trace{}, connection.ErrTraceNotFound
 	}
 
 	trace := &v1.TracesData{
@@ -110,19 +115,19 @@ type HttpTempoTraceByIDResponse struct {
 	Batches []*traces.HttpResourceSpans `json:"batches"`
 }
 
-func httpGetTraceByID(ctx context.Context, traceID string, client *datasource.HttpClient) (model.Trace, error) {
+func httpGetTraceByID(ctx context.Context, traceID string, client *datasource.HttpClient) (traces.Trace, error) {
 	trID, err := trace.TraceIDFromHex(traceID)
 	if err != nil {
-		return model.Trace{}, err
+		return traces.Trace{}, err
 	}
 	resp, err := client.Request(ctx, fmt.Sprintf("/api/traces/%s", trID), http.MethodGet, "")
 
 	if err != nil {
-		return model.Trace{}, handleError(err)
+		return traces.Trace{}, handleError(err)
 	}
 
 	if resp.StatusCode == 404 {
-		return model.Trace{}, connection.ErrTraceNotFound
+		return traces.Trace{}, connection.ErrTraceNotFound
 	}
 
 	var body []byte
@@ -133,13 +138,13 @@ func httpGetTraceByID(ctx context.Context, traceID string, client *datasource.Ht
 	}
 
 	if resp.StatusCode == 401 {
-		return model.Trace{}, fmt.Errorf("tempo err: %w %s", errors.New("authentication handshake failed"), string(body))
+		return traces.Trace{}, fmt.Errorf("tempo err: %w %s", errors.New("authentication handshake failed"), string(body))
 	}
 
 	var trace HttpTempoTraceByIDResponse
 	err = json.Unmarshal(body, &trace)
 	if err != nil {
-		return model.Trace{}, err
+		return traces.Trace{}, err
 	}
 
 	return traces.FromHttpOtelResourceSpans(trace.Batches), nil

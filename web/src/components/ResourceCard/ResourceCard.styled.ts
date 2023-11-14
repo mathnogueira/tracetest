@@ -1,8 +1,9 @@
 import {MoreOutlined} from '@ant-design/icons';
-import {Button, Space, Typography} from 'antd';
+import {Space, Typography} from 'antd';
+import styled from 'styled-components';
 
 import emptyStateIcon from 'assets/SpanAssertionsEmptyState.svg';
-import styled from 'styled-components';
+import Link from 'components/Link';
 import {ResourceType} from 'types/Resource.type';
 
 export const ActionButton = styled(MoreOutlined)`
@@ -77,9 +78,7 @@ export const HeaderDetail = styled(Typography.Text)`
   margin-right: 8px;
 `;
 
-export const Link = styled(Button).attrs({
-  type: 'link',
-})`
+export const CustomLink = styled(Link)`
   color: ${({theme}) => theme.color.primary};
   font-weight: 600;
   padding: 0;
@@ -113,10 +112,6 @@ export const Row = styled.div<{$gap?: number; $noWrap?: boolean}>`
   white-space: ${({$noWrap}) => $noWrap && 'nowrap'};
 `;
 
-export const RunButton = styled(Button)`
-  margin-right: 12px;
-`;
-
 export const RunsContainer = styled.div`
   padding: 0 24px 15px 64px;
 `;
@@ -130,7 +125,7 @@ export const RunsListContainer = styled.div`
 export const TestContainer = styled.div`
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto auto 1fr 100px auto auto;
+  grid-template-columns: auto auto 1fr 28px auto auto auto;
   align-items: center;
   gap: 18px;
   padding: 15px 24px;

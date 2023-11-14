@@ -51,76 +51,22 @@ func NewApiApiController(s ApiApiServicer, opts ...ApiApiOption) Router {
 func (c *ApiApiController) Routes() Routes {
 	return Routes{
 		{
-			"CreateDataStore",
-			strings.ToUpper("Post"),
-			"/api/datastores",
-			c.CreateDataStore,
-		},
-		{
-			"CreateEnvironment",
-			strings.ToUpper("Post"),
-			"/api/environments",
-			c.CreateEnvironment,
-		},
-		{
-			"CreateTest",
-			strings.ToUpper("Post"),
-			"/api/tests",
-			c.CreateTest,
-		},
-		{
-			"CreateTransaction",
-			strings.ToUpper("Post"),
-			"/api/transactions",
-			c.CreateTransaction,
-		},
-		{
-			"DeleteDataStore",
-			strings.ToUpper("Delete"),
-			"/api/datastores/{dataStoreId}",
-			c.DeleteDataStore,
-		},
-		{
-			"DeleteEnvironment",
-			strings.ToUpper("Delete"),
-			"/api/environments/{environmentId}",
-			c.DeleteEnvironment,
-		},
-		{
-			"DeleteTest",
-			strings.ToUpper("Delete"),
-			"/api/tests/{testId}",
-			c.DeleteTest,
-		},
-		{
 			"DeleteTestRun",
 			strings.ToUpper("Delete"),
 			"/api/tests/{testId}/run/{runId}",
 			c.DeleteTestRun,
 		},
 		{
-			"DeleteTransaction",
+			"DeleteTestSuiteRun",
 			strings.ToUpper("Delete"),
-			"/api/transactions/{transactionId}",
-			c.DeleteTransaction,
-		},
-		{
-			"DeleteTransactionRun",
-			strings.ToUpper("Delete"),
-			"/api/transactions/{transactionId}/run/{runId}",
-			c.DeleteTransactionRun,
+			"/api/testsuites/{testSuiteId}/run/{runId}",
+			c.DeleteTestSuiteRun,
 		},
 		{
 			"DryRunAssertion",
 			strings.ToUpper("Put"),
 			"/api/tests/{testId}/run/{runId}/dry-run",
 			c.DryRunAssertion,
-		},
-		{
-			"ExecuteDefinition",
-			strings.ToUpper("Post"),
-			"/api/definition.yaml",
-			c.ExecuteDefinition,
 		},
 		{
 			"ExportTestRun",
@@ -135,42 +81,6 @@ func (c *ApiApiController) Routes() Routes {
 			c.ExpressionResolve,
 		},
 		{
-			"GetDataStore",
-			strings.ToUpper("Get"),
-			"/api/datastores/{dataStoreId}",
-			c.GetDataStore,
-		},
-		{
-			"GetDataStoreDefinitionFile",
-			strings.ToUpper("Get"),
-			"/api/datastores/{dataStoreId}/definition.yaml",
-			c.GetDataStoreDefinitionFile,
-		},
-		{
-			"GetDataStores",
-			strings.ToUpper("Get"),
-			"/api/datastores",
-			c.GetDataStores,
-		},
-		{
-			"GetEnvironment",
-			strings.ToUpper("Get"),
-			"/api/environments/{environmentId}",
-			c.GetEnvironment,
-		},
-		{
-			"GetEnvironmentDefinitionFile",
-			strings.ToUpper("Get"),
-			"/api/environments/{environmentId}/definition.yaml",
-			c.GetEnvironmentDefinitionFile,
-		},
-		{
-			"GetEnvironments",
-			strings.ToUpper("Get"),
-			"/api/environments",
-			c.GetEnvironments,
-		},
-		{
 			"GetResources",
 			strings.ToUpper("Get"),
 			"/api/resources",
@@ -181,12 +91,6 @@ func (c *ApiApiController) Routes() Routes {
 			strings.ToUpper("Get"),
 			"/api/tests/{testId}/run/{runId}/junit.xml",
 			c.GetRunResultJUnit,
-		},
-		{
-			"GetTest",
-			strings.ToUpper("Get"),
-			"/api/tests/{testId}",
-			c.GetTest,
 		},
 		{
 			"GetTestResultSelectedSpans",
@@ -201,6 +105,12 @@ func (c *ApiApiController) Routes() Routes {
 			c.GetTestRun,
 		},
 		{
+			"GetTestRunEvents",
+			strings.ToUpper("Get"),
+			"/api/tests/{testId}/run/{runId}/events",
+			c.GetTestRunEvents,
+		},
+		{
 			"GetTestRuns",
 			strings.ToUpper("Get"),
 			"/api/tests/{testId}/run",
@@ -213,58 +123,34 @@ func (c *ApiApiController) Routes() Routes {
 			c.GetTestSpecs,
 		},
 		{
+			"GetTestSuiteRun",
+			strings.ToUpper("Get"),
+			"/api/testsuites/{testSuiteId}/run/{runId}",
+			c.GetTestSuiteRun,
+		},
+		{
+			"GetTestSuiteRuns",
+			strings.ToUpper("Get"),
+			"/api/testsuites/{testSuiteId}/run",
+			c.GetTestSuiteRuns,
+		},
+		{
+			"GetTestSuiteVersion",
+			strings.ToUpper("Get"),
+			"/api/testsuites/{testSuiteId}/version/{version}",
+			c.GetTestSuiteVersion,
+		},
+		{
 			"GetTestVersion",
 			strings.ToUpper("Get"),
 			"/api/tests/{testId}/version/{version}",
 			c.GetTestVersion,
 		},
 		{
-			"GetTestVersionDefinitionFile",
+			"GetVersion",
 			strings.ToUpper("Get"),
-			"/api/tests/{testId}/version/{version}/definition.yaml",
-			c.GetTestVersionDefinitionFile,
-		},
-		{
-			"GetTests",
-			strings.ToUpper("Get"),
-			"/api/tests",
-			c.GetTests,
-		},
-		{
-			"GetTransaction",
-			strings.ToUpper("Get"),
-			"/api/transactions/{transactionId}",
-			c.GetTransaction,
-		},
-		{
-			"GetTransactionRun",
-			strings.ToUpper("Get"),
-			"/api/transactions/{transactionId}/run/{runId}",
-			c.GetTransactionRun,
-		},
-		{
-			"GetTransactionRuns",
-			strings.ToUpper("Get"),
-			"/api/transactions/{transactionId}/run",
-			c.GetTransactionRuns,
-		},
-		{
-			"GetTransactionVersion",
-			strings.ToUpper("Get"),
-			"/api/transactions/{transactionId}/version/{version}",
-			c.GetTransactionVersion,
-		},
-		{
-			"GetTransactionVersionDefinitionFile",
-			strings.ToUpper("Get"),
-			"/api/transactions/{transactionId}/version/{version}/definition.yaml",
-			c.GetTransactionVersionDefinitionFile,
-		},
-		{
-			"GetTransactions",
-			strings.ToUpper("Get"),
-			"/api/transactions",
-			c.GetTransactions,
+			"/api/version.{fileExtension}",
+			c.GetVersion,
 		},
 		{
 			"ImportTestRun",
@@ -285,10 +171,16 @@ func (c *ApiApiController) Routes() Routes {
 			c.RunTest,
 		},
 		{
-			"RunTransaction",
+			"RunTestSuite",
 			strings.ToUpper("Post"),
-			"/api/transactions/{transactionId}/run",
-			c.RunTransaction,
+			"/api/testsuites/{testSuiteId}/run",
+			c.RunTestSuite,
+		},
+		{
+			"StopTestRun",
+			strings.ToUpper("Post"),
+			"/api/tests/{testId}/run/{runId}/stop",
+			c.StopTestRun,
 		},
 		{
 			"TestConnection",
@@ -297,180 +189,12 @@ func (c *ApiApiController) Routes() Routes {
 			c.TestConnection,
 		},
 		{
-			"UpdateDataStore",
-			strings.ToUpper("Put"),
-			"/api/datastores/{dataStoreId}",
-			c.UpdateDataStore,
-		},
-		{
-			"UpdateEnvironment",
-			strings.ToUpper("Put"),
-			"/api/environments/{environmentId}",
-			c.UpdateEnvironment,
-		},
-		{
-			"UpdateTest",
-			strings.ToUpper("Put"),
-			"/api/tests/{testId}",
-			c.UpdateTest,
-		},
-		{
-			"UpdateTransaction",
-			strings.ToUpper("Put"),
-			"/api/transactions/{transactionId}",
-			c.UpdateTransaction,
-		},
-		{
-			"UpsertDefinition",
-			strings.ToUpper("Put"),
-			"/api/definition.yaml",
-			c.UpsertDefinition,
+			"UpdateTestRun",
+			strings.ToUpper("Patch"),
+			"/api/tests/{testId}/run/{runId}",
+			c.UpdateTestRun,
 		},
 	}
-}
-
-// CreateDataStore - Create a new Data Store
-func (c *ApiApiController) CreateDataStore(w http.ResponseWriter, r *http.Request) {
-	dataStoreParam := DataStore{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&dataStoreParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertDataStoreRequired(dataStoreParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.CreateDataStore(r.Context(), dataStoreParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// CreateEnvironment - Create new environment
-func (c *ApiApiController) CreateEnvironment(w http.ResponseWriter, r *http.Request) {
-	environmentParam := Environment{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&environmentParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertEnvironmentRequired(environmentParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.CreateEnvironment(r.Context(), environmentParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// CreateTest - Create new test
-func (c *ApiApiController) CreateTest(w http.ResponseWriter, r *http.Request) {
-	testParam := Test{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&testParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertTestRequired(testParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.CreateTest(r.Context(), testParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// CreateTransaction - Create new transaction
-func (c *ApiApiController) CreateTransaction(w http.ResponseWriter, r *http.Request) {
-	transactionParam := Transaction{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&transactionParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertTransactionRequired(transactionParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.CreateTransaction(r.Context(), transactionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// DeleteDataStore - Delete a Data Store
-func (c *ApiApiController) DeleteDataStore(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	dataStoreIdParam := params["dataStoreId"]
-
-	result, err := c.service.DeleteDataStore(r.Context(), dataStoreIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// DeleteEnvironment - delete a environment
-func (c *ApiApiController) DeleteEnvironment(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	environmentIdParam := params["environmentId"]
-
-	result, err := c.service.DeleteEnvironment(r.Context(), environmentIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// DeleteTest - delete a test
-func (c *ApiApiController) DeleteTest(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	testIdParam := params["testId"]
-
-	result, err := c.service.DeleteTest(r.Context(), testIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
 }
 
 // DeleteTestRun - delete a test run
@@ -478,7 +202,11 @@ func (c *ApiApiController) DeleteTestRun(w http.ResponseWriter, r *http.Request)
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
 
 	result, err := c.service.DeleteTestRun(r.Context(), testIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
@@ -491,26 +219,10 @@ func (c *ApiApiController) DeleteTestRun(w http.ResponseWriter, r *http.Request)
 
 }
 
-// DeleteTransaction - delete a transaction
-func (c *ApiApiController) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
+// DeleteTestSuiteRun - Delete a specific run from a particular TestSuite
+func (c *ApiApiController) DeleteTestSuiteRun(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
-
-	result, err := c.service.DeleteTransaction(r.Context(), transactionIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// DeleteTransactionRun - Delete a specific run from a particular transaction
-func (c *ApiApiController) DeleteTransactionRun(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
+	testSuiteIdParam := params["testSuiteId"]
 
 	runIdParam, err := parseInt32Parameter(params["runId"], true)
 	if err != nil {
@@ -518,7 +230,7 @@ func (c *ApiApiController) DeleteTransactionRun(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	result, err := c.service.DeleteTransactionRun(r.Context(), transactionIdParam, runIdParam)
+	result, err := c.service.DeleteTestSuiteRun(r.Context(), testSuiteIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
@@ -534,7 +246,11 @@ func (c *ApiApiController) DryRunAssertion(w http.ResponseWriter, r *http.Reques
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
 
 	testSpecsParam := TestSpecs{}
 	d := json.NewDecoder(r.Body)
@@ -558,36 +274,16 @@ func (c *ApiApiController) DryRunAssertion(w http.ResponseWriter, r *http.Reques
 
 }
 
-// ExecuteDefinition - Execute a definition
-func (c *ApiApiController) ExecuteDefinition(w http.ResponseWriter, r *http.Request) {
-	textDefinitionParam := TextDefinition{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&textDefinitionParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertTextDefinitionRequired(textDefinitionParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.ExecuteDefinition(r.Context(), textDefinitionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
 // ExportTestRun - export test and test run information
 func (c *ApiApiController) ExportTestRun(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
 
 	result, err := c.service.ExportTestRun(r.Context(), testIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
@@ -614,124 +310,6 @@ func (c *ApiApiController) ExpressionResolve(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	result, err := c.service.ExpressionResolve(r.Context(), resolveRequestInfoParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetDataStore - Get a Data Store
-func (c *ApiApiController) GetDataStore(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	dataStoreIdParam := params["dataStoreId"]
-
-	result, err := c.service.GetDataStore(r.Context(), dataStoreIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetDataStoreDefinitionFile - Get the data store definition as an YAML file
-func (c *ApiApiController) GetDataStoreDefinitionFile(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	dataStoreIdParam := params["dataStoreId"]
-
-	result, err := c.service.GetDataStoreDefinitionFile(r.Context(), dataStoreIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetDataStores - Get all Data Stores
-func (c *ApiApiController) GetDataStores(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	takeParam, err := parseInt32Parameter(query.Get("take"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	skipParam, err := parseInt32Parameter(query.Get("skip"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	queryParam := query.Get("query")
-	sortByParam := query.Get("sortBy")
-	sortDirectionParam := query.Get("sortDirection")
-	result, err := c.service.GetDataStores(r.Context(), takeParam, skipParam, queryParam, sortByParam, sortDirectionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetEnvironment - get environment
-func (c *ApiApiController) GetEnvironment(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	environmentIdParam := params["environmentId"]
-
-	result, err := c.service.GetEnvironment(r.Context(), environmentIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetEnvironmentDefinitionFile - Get the environment definition as an YAML file
-func (c *ApiApiController) GetEnvironmentDefinitionFile(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	environmentIdParam := params["environmentId"]
-
-	result, err := c.service.GetEnvironmentDefinitionFile(r.Context(), environmentIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetEnvironments - Get Environments
-func (c *ApiApiController) GetEnvironments(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	takeParam, err := parseInt32Parameter(query.Get("take"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	skipParam, err := parseInt32Parameter(query.Get("skip"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	queryParam := query.Get("query")
-	sortByParam := query.Get("sortBy")
-	sortDirectionParam := query.Get("sortDirection")
-	result, err := c.service.GetEnvironments(r.Context(), takeParam, skipParam, queryParam, sortByParam, sortDirectionParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
@@ -774,25 +352,13 @@ func (c *ApiApiController) GetRunResultJUnit(w http.ResponseWriter, r *http.Requ
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
-
-	result, err := c.service.GetRunResultJUnit(r.Context(), testIdParam, runIdParam)
-	// If an error occurred, encode the error with the status code
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
 	if err != nil {
-		c.errorHandler(w, r, err, &result)
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
 		return
 	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
 
-}
-
-// GetTest - get test
-func (c *ApiApiController) GetTest(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	testIdParam := params["testId"]
-
-	result, err := c.service.GetTest(r.Context(), testIdParam)
+	result, err := c.service.GetRunResultJUnit(r.Context(), testIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
@@ -809,7 +375,11 @@ func (c *ApiApiController) GetTestResultSelectedSpans(w http.ResponseWriter, r *
 	query := r.URL.Query()
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
 
 	queryParam := query.Get("query")
 	result, err := c.service.GetTestResultSelectedSpans(r.Context(), testIdParam, runIdParam, queryParam)
@@ -828,9 +398,35 @@ func (c *ApiApiController) GetTestRun(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
 
 	result, err := c.service.GetTestRun(r.Context(), testIdParam, runIdParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// GetTestRunEvents - get events from a test run
+func (c *ApiApiController) GetTestRunEvents(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	testIdParam := params["testId"]
+
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+
+	result, err := c.service.GetTestRunEvents(r.Context(), testIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
@@ -884,6 +480,77 @@ func (c *ApiApiController) GetTestSpecs(w http.ResponseWriter, r *http.Request) 
 
 }
 
+// GetTestSuiteRun - Get a specific run from a particular TestSuite
+func (c *ApiApiController) GetTestSuiteRun(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	testSuiteIdParam := params["testSuiteId"]
+
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+
+	result, err := c.service.GetTestSuiteRun(r.Context(), testSuiteIdParam, runIdParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// GetTestSuiteRuns - Get all runs from a particular TestSuite
+func (c *ApiApiController) GetTestSuiteRuns(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	query := r.URL.Query()
+	testSuiteIdParam := params["testSuiteId"]
+
+	takeParam, err := parseInt32Parameter(query.Get("take"), false)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+	skipParam, err := parseInt32Parameter(query.Get("skip"), false)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+	result, err := c.service.GetTestSuiteRuns(r.Context(), testSuiteIdParam, takeParam, skipParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// GetTestSuiteVersion - get a TestSuite specific version
+func (c *ApiApiController) GetTestSuiteVersion(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	testSuiteIdParam := params["testSuiteId"]
+
+	versionParam, err := parseInt32Parameter(params["version"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+
+	result, err := c.service.GetTestSuiteVersion(r.Context(), testSuiteIdParam, versionParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
 // GetTestVersion - get a test specific version
 func (c *ApiApiController) GetTestVersion(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -906,181 +573,12 @@ func (c *ApiApiController) GetTestVersion(w http.ResponseWriter, r *http.Request
 
 }
 
-// GetTestVersionDefinitionFile - Get the test definition as an YAML file
-func (c *ApiApiController) GetTestVersionDefinitionFile(w http.ResponseWriter, r *http.Request) {
+// GetVersion - Get the version of the API
+func (c *ApiApiController) GetVersion(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	testIdParam := params["testId"]
+	fileExtensionParam := params["fileExtension"]
 
-	versionParam, err := parseInt32Parameter(params["version"], true)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-
-	result, err := c.service.GetTestVersionDefinitionFile(r.Context(), testIdParam, versionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTests - Get tests
-func (c *ApiApiController) GetTests(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	takeParam, err := parseInt32Parameter(query.Get("take"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	skipParam, err := parseInt32Parameter(query.Get("skip"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	queryParam := query.Get("query")
-	sortByParam := query.Get("sortBy")
-	sortDirectionParam := query.Get("sortDirection")
-	result, err := c.service.GetTests(r.Context(), takeParam, skipParam, queryParam, sortByParam, sortDirectionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTransaction - get transaction
-func (c *ApiApiController) GetTransaction(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
-
-	result, err := c.service.GetTransaction(r.Context(), transactionIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTransactionRun - Get a specific run from a particular transaction
-func (c *ApiApiController) GetTransactionRun(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
-
-	runIdParam, err := parseInt32Parameter(params["runId"], true)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-
-	result, err := c.service.GetTransactionRun(r.Context(), transactionIdParam, runIdParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTransactionRuns - Get all runs from a particular transaction
-func (c *ApiApiController) GetTransactionRuns(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	query := r.URL.Query()
-	transactionIdParam := params["transactionId"]
-
-	takeParam, err := parseInt32Parameter(query.Get("take"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	skipParam, err := parseInt32Parameter(query.Get("skip"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	result, err := c.service.GetTransactionRuns(r.Context(), transactionIdParam, takeParam, skipParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTransactionVersion - get a transaction specific version
-func (c *ApiApiController) GetTransactionVersion(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
-
-	versionParam, err := parseInt32Parameter(params["version"], true)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-
-	result, err := c.service.GetTransactionVersion(r.Context(), transactionIdParam, versionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTransactionVersionDefinitionFile - Get the transaction definition as an YAML file
-func (c *ApiApiController) GetTransactionVersionDefinitionFile(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
-
-	versionParam, err := parseInt32Parameter(params["version"], true)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-
-	result, err := c.service.GetTransactionVersionDefinitionFile(r.Context(), transactionIdParam, versionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetTransactions - Get transactions
-func (c *ApiApiController) GetTransactions(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	takeParam, err := parseInt32Parameter(query.Get("take"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	skipParam, err := parseInt32Parameter(query.Get("skip"), false)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	queryParam := query.Get("query")
-	sortByParam := query.Get("sortBy")
-	sortDirectionParam := query.Get("sortDirection")
-	result, err := c.service.GetTransactions(r.Context(), takeParam, skipParam, queryParam, sortByParam, sortDirectionParam)
+	result, err := c.service.GetVersion(r.Context(), fileExtensionParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
@@ -1120,7 +618,11 @@ func (c *ApiApiController) RerunTestRun(w http.ResponseWriter, r *http.Request) 
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	runIdParam := params["runId"]
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
 
 	result, err := c.service.RerunTestRun(r.Context(), testIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
@@ -1160,10 +662,10 @@ func (c *ApiApiController) RunTest(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// RunTransaction - run transaction
-func (c *ApiApiController) RunTransaction(w http.ResponseWriter, r *http.Request) {
+// RunTestSuite - run TestSuite
+func (c *ApiApiController) RunTestSuite(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
+	testSuiteIdParam := params["testSuiteId"]
 
 	runInformationParam := RunInformation{}
 	d := json.NewDecoder(r.Body)
@@ -1176,7 +678,29 @@ func (c *ApiApiController) RunTransaction(w http.ResponseWriter, r *http.Request
 		c.errorHandler(w, r, err, nil)
 		return
 	}
-	result, err := c.service.RunTransaction(r.Context(), transactionIdParam, runInformationParam)
+	result, err := c.service.RunTestSuite(r.Context(), testSuiteIdParam, runInformationParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// StopTestRun - stops the execution of a test run
+func (c *ApiApiController) StopTestRun(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	testIdParam := params["testId"]
+
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+
+	result, err := c.service.StopTestRun(r.Context(), testIdParam, runIdParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
@@ -1211,128 +735,29 @@ func (c *ApiApiController) TestConnection(w http.ResponseWriter, r *http.Request
 
 }
 
-// UpdateDataStore - Update a Data Store
-func (c *ApiApiController) UpdateDataStore(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	dataStoreIdParam := params["dataStoreId"]
-
-	dataStoreParam := DataStore{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&dataStoreParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertDataStoreRequired(dataStoreParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.UpdateDataStore(r.Context(), dataStoreIdParam, dataStoreParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// UpdateEnvironment - update environment
-func (c *ApiApiController) UpdateEnvironment(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	environmentIdParam := params["environmentId"]
-
-	environmentParam := Environment{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&environmentParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertEnvironmentRequired(environmentParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.UpdateEnvironment(r.Context(), environmentIdParam, environmentParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// UpdateTest - update test
-func (c *ApiApiController) UpdateTest(w http.ResponseWriter, r *http.Request) {
+// UpdateTestRun - update a test run
+func (c *ApiApiController) UpdateTestRun(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	testIdParam := params["testId"]
 
-	testParam := Test{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&testParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertTestRequired(testParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.UpdateTest(r.Context(), testIdParam, testParam)
-	// If an error occurred, encode the error with the status code
+	runIdParam, err := parseInt32Parameter(params["runId"], true)
 	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// UpdateTransaction - update transaction
-func (c *ApiApiController) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionIdParam := params["transactionId"]
-
-	transactionParam := Transaction{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&transactionParam); err != nil {
 		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
 		return
 	}
-	if err := AssertTransactionRequired(transactionParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.UpdateTransaction(r.Context(), transactionIdParam, transactionParam)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		c.errorHandler(w, r, err, &result)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
 
-}
-
-// UpsertDefinition - Upsert a definition
-func (c *ApiApiController) UpsertDefinition(w http.ResponseWriter, r *http.Request) {
-	textDefinitionParam := TextDefinition{}
+	testRunParam := TestRun{}
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
-	if err := d.Decode(&textDefinitionParam); err != nil {
+	if err := d.Decode(&testRunParam); err != nil {
 		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
 		return
 	}
-	if err := AssertTextDefinitionRequired(textDefinitionParam); err != nil {
+	if err := AssertTestRunRequired(testRunParam); err != nil {
 		c.errorHandler(w, r, err, nil)
 		return
 	}
-	result, err := c.service.UpsertDefinition(r.Context(), textDefinitionParam)
+	result, err := c.service.UpdateTestRun(r.Context(), testIdParam, runIdParam, testRunParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

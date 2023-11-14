@@ -1,39 +1,40 @@
 import {Navigate, Route, Routes} from 'react-router-dom';
-import {HistoryRouter} from 'redux-first-history/rr6';
-import {history} from 'redux/store';
 
-import Envs from 'pages/Environments';
+import VariableSet from 'pages/VariableSet';
 import Home from 'pages/Home';
+import TestSuites from 'pages/TestSuites';
 import RunDetail from 'pages/RunDetail';
 import Settings from 'pages/Settings';
 import Test from 'pages/Test';
-import Transaction from 'pages/Transaction';
-import TransactionRunDetail from 'pages/TransactionRunDetail';
-import Env from 'utils/Env';
-
-const serverPathPrefix = Env.get('serverPathPrefix');
+import TestSuite from 'pages/TestSuite';
+import TestSuiteRunOverview from 'pages/TestSuiteRunOverview';
+import TestSuiteRunAutomate from 'pages/TestSuiteRunAutomate';
+import AutomatedTestRun from 'pages/AutomatedTestRun';
+import Layout from 'components/Layout/Layout';
 
 const Router = () => (
-  <HistoryRouter history={history} basename={serverPathPrefix}>
-    <Routes>
+  <Routes>
+    <Route element={<Layout hasMenu />}>
       <Route path="/" element={<Home />} />
-
-      <Route path="/environments" element={<Envs />} />
-
+      <Route path="/testsuites" element={<TestSuites />} />
+      <Route path="/variablesets" element={<VariableSet />} />
       <Route path="/settings" element={<Settings />} />
+    </Route>
 
+    <Route element={<Layout />}>
       <Route path="/test/:testId" element={<Test />} />
+      <Route path="/test/:testId/run/:runId" element={<RunDetail />} />
+      <Route path="/test/:testId/run/:runId/:mode" element={<RunDetail />} />
+      <Route path="/test/:testId/run" element={<AutomatedTestRun />} />
 
-      <Route path="/test/:testId/run/:runId" element={<RunDetail />}>
-        <Route path=":mode" element={<RunDetail />} />
-      </Route>
+      <Route path="/testsuite/:testSuiteId" element={<TestSuite />} />
+      <Route path="/testsuite/:testSuiteId/run/:runId" element={<TestSuiteRunOverview />} />
+      <Route path="/testsuite/:testSuiteId/run/:runId/overview" element={<TestSuiteRunOverview />} />
+      <Route path="/testsuite/:testSuiteId/run/:runId/automate" element={<TestSuiteRunAutomate />} />
+    </Route>
 
-      <Route path="/transaction/:transactionId" element={<Transaction />} />
-      <Route path="/transaction/:transactionId/run/:runId" element={<TransactionRunDetail />} />
-
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-  </HistoryRouter>
+    <Route path="*" element={<Navigate to="/" />} />
+  </Routes>
 );
 
 export default Router;

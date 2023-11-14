@@ -6,13 +6,13 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kubeshop/tracetest/server/id"
+	"github.com/kubeshop/tracetest/server/datastore"
 	pb "github.com/kubeshop/tracetest/server/internal/proto-gen-go/api_v3"
 	"github.com/kubeshop/tracetest/server/model"
+	"github.com/kubeshop/tracetest/server/pkg/id"
 	"github.com/kubeshop/tracetest/server/tracedb/connection"
 	"github.com/kubeshop/tracetest/server/tracedb/datasource"
 	"github.com/kubeshop/tracetest/server/traces"
-	"go.opentelemetry.io/collector/config/configgrpc"
 	v1 "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -27,10 +27,10 @@ type jaegerTraceDB struct {
 	dataSource datasource.DataSource
 }
 
-func newJaegerDB(grpcConfig *configgrpc.GRPCClientSettings) (TraceDB, error) {
-	baseConfig := &model.BaseClientConfig{
-		Type: string(datasource.GRPC),
-		Grpc: *grpcConfig,
+func newJaegerDB(grpcConfig *datastore.GRPCClientSettings) (TraceDB, error) {
+	baseConfig := &datastore.MultiChannelClientConfig{
+		Type: datastore.MultiChannelClientTypeGRPC,
+		Grpc: grpcConfig,
 	}
 
 	dataSource := datasource.New("Jaeger", baseConfig, datasource.Callbacks{
@@ -46,7 +46,11 @@ func (jtd *jaegerTraceDB) Connect(ctx context.Context) error {
 	return jtd.dataSource.Connect(ctx)
 }
 
-func (jtd *jaegerTraceDB) TestConnection(ctx context.Context) connection.ConnectionTestResult {
+func (jtd *jaegerTraceDB) GetEndpoints() string {
+	return jtd.dataSource.Endpoint()
+}
+
+func (jtd *jaegerTraceDB) TestConnection(ctx context.Context) model.ConnectionResult {
 	tester := connection.NewTester(
 		connection.WithPortLintingTest(connection.PortLinter("Jaeger", jaegerDefaultPorts(), jtd.dataSource.Endpoint())),
 		connection.WithConnectivityTest(jtd.dataSource),
@@ -64,7 +68,7 @@ func (jtd *jaegerTraceDB) TestConnection(ctx context.Context) connection.Connect
 	return tester.TestConnection(ctx)
 }
 
-func (jtd *jaegerTraceDB) GetTraceByID(ctx context.Context, traceID string) (model.Trace, error) {
+func (jtd *jaegerTraceDB) GetTraceByID(ctx context.Context, traceID string) (traces.Trace, error) {
 	trace, err := jtd.dataSource.GetTraceByID(ctx, traceID)
 	return trace, err
 }
@@ -77,14 +81,14 @@ func (jtd *jaegerTraceDB) Close() error {
 	return jtd.dataSource.Close()
 }
 
-func jaegerGrpcGetTraceByID(ctx context.Context, traceID string, conn *grpc.ClientConn) (model.Trace, error) {
+func jaegerGrpcGetTraceByID(ctx context.Context, traceID string, conn *grpc.ClientConn) (traces.Trace, error) {
 	query := pb.NewQueryServiceClient(conn)
 
 	stream, err := query.GetTrace(ctx, &pb.GetTraceRequest{
 		TraceId: traceID,
 	})
 	if err != nil {
-		return model.Trace{}, fmt.Errorf("jaeger get trace: %w", err)
+		return traces.Trace{}, fmt.Errorf("jaeger get trace: %w", err)
 	}
 
 	// jaeger-query v3 API returns otel spans
@@ -98,12 +102,12 @@ func jaegerGrpcGetTraceByID(ctx context.Context, traceID string, conn *grpc.Clie
 		if err != nil {
 			st, ok := status.FromError(err)
 			if !ok {
-				return model.Trace{}, fmt.Errorf("jaeger stream recv: %w", err)
+				return traces.Trace{}, fmt.Errorf("jaeger stream recv: %w", err)
 			}
-			if st.Message() == "trace not found" {
-				return model.Trace{}, connection.ErrTraceNotFound
+			if strings.Contains(st.Message(), "trace not found") {
+				return traces.Trace{}, connection.ErrTraceNotFound
 			}
-			return model.Trace{}, fmt.Errorf("jaeger stream recv err: %w", err)
+			return traces.Trace{}, fmt.Errorf("jaeger stream recv err: %w", err)
 		}
 
 		spans = append(spans, in.ResourceSpans...)

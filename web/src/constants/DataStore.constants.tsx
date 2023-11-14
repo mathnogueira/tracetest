@@ -1,6 +1,7 @@
 import {SupportedDataStores} from '../types/DataStore.types';
 
 export const SupportedDataStoresToName = {
+  [SupportedDataStores.Agent]: 'Agent',
   [SupportedDataStores.JAEGER]: 'Jaeger',
   [SupportedDataStores.OpenSearch]: 'OpenSearch',
   [SupportedDataStores.SignalFX]: 'SignalFX',
@@ -11,9 +12,14 @@ export const SupportedDataStoresToName = {
   [SupportedDataStores.Lightstep]: 'Lightstep',
   [SupportedDataStores.Datadog]: 'Datadog',
   [SupportedDataStores.AWSXRay]: 'AWS X-Ray',
+  [SupportedDataStores.Honeycomb]: 'Honeycomb',
+  [SupportedDataStores.AzureAppInsights]: 'Azure App Insights',
+  [SupportedDataStores.Signoz]: 'Signoz',
+  [SupportedDataStores.Dynatrace]: 'Dynatrace',
 } as const;
 
 export const SupportedDataStoresToDocsLink = {
+  [SupportedDataStores.Agent]: 'https://docs.tracetest.io/configuration/agent',
   [SupportedDataStores.JAEGER]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/jaeger',
   [SupportedDataStores.OpenSearch]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/opensearch',
   [SupportedDataStores.ElasticApm]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/elasticapm',
@@ -25,9 +31,15 @@ export const SupportedDataStoresToDocsLink = {
   [SupportedDataStores.AWSXRay]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/aws-x-ray',
   [SupportedDataStores.OtelCollector]:
     'https://docs.tracetest.io/configuration/connecting-to-data-stores/opentelemetry-collector',
+  [SupportedDataStores.Honeycomb]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/honeycomb',
+  [SupportedDataStores.AzureAppInsights]:
+    'https://docs.tracetest.io/configuration/connecting-to-data-stores/azure-app-insights',
+  [SupportedDataStores.Signoz]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/signoz',
+  [SupportedDataStores.Dynatrace]: 'https://docs.tracetest.io/configuration/connecting-to-data-stores/dynatrace',
 } as const;
 
 export const SupportedDataStoresToDefaultEndpoint = {
+  [SupportedDataStores.Agent]: '',
   [SupportedDataStores.JAEGER]: 'jaeger:16685',
   [SupportedDataStores.OpenSearch]: 'http://opensearch:9200',
   [SupportedDataStores.SignalFX]: '',
@@ -38,29 +50,8 @@ export const SupportedDataStoresToDefaultEndpoint = {
   [SupportedDataStores.Lightstep]: '',
   [SupportedDataStores.Datadog]: '',
   [SupportedDataStores.AWSXRay]: '',
+  [SupportedDataStores.Honeycomb]: '',
+  [SupportedDataStores.AzureAppInsights]: '',
+  [SupportedDataStores.Signoz]: '',
+  [SupportedDataStores.Dynatrace]: 'https://abc12345.live.dynatrace.com/api/v2/otlp',
 } as const;
-
-const collectorExplanation = (
-  <>
-    Tracetest can work with any distributed tracing solution that is utilizing the{' '}
-    <a href="https://opentelemetry.io/docs/collector/" target="_blank">
-      OpenTelemetry Collector
-    </a>{' '}
-    via a second pipeline. The second pipeline enables your current tracing system to send only Tracetest spans to
-    Tracetest, while all other spans continue to go to the backend of your choice.
-  </>
-);
-
-export const SupportedDataStoresToExplanation: Record<string, React.ReactElement> = {
-  [SupportedDataStores.OtelCollector]: collectorExplanation,
-  [SupportedDataStores.NewRelic]: collectorExplanation,
-  [SupportedDataStores.Lightstep]: collectorExplanation,
-  [SupportedDataStores.Datadog]: collectorExplanation,
-};
-
-export const NoTestConnectionDataStoreList = [
-  SupportedDataStores.OtelCollector,
-  SupportedDataStores.Lightstep,
-  SupportedDataStores.Datadog,
-  SupportedDataStores.NewRelic,
-];

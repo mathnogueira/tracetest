@@ -5,13 +5,14 @@ import {toRawTestOutputs} from 'models/TestOutput.model';
 import {IPlugin} from 'types/Plugins.types';
 import {TDraftTest} from 'types/Test.types';
 import Validator from 'utils/Validator';
-import Test, {TRawTest} from 'models/Test.model';
+import Test, {TRawTestResource} from 'models/Test.model';
 import TestDefinitionService from './TestDefinition.service';
 import GrpcService from './Triggers/Grpc.service';
 import HttpService from './Triggers/Http.service';
 import PostmanService from './Triggers/Postman.service';
 import CurlService from './Triggers/Curl.service';
 import TraceIDService from './Triggers/TraceID.service';
+import KafkaService from './Triggers/Kafka.service';
 
 const authValidation = ({auth}: TDraftTest): boolean => {
   switch (auth?.type) {
@@ -33,7 +34,7 @@ const basicDetailsValidation = ({name}: TDraftTest): boolean => {
 const TriggerServiceMap = {
   [SupportedPlugins.GRPC]: GrpcService,
   [SupportedPlugins.REST]: HttpService,
-  [SupportedPlugins.Messaging]: HttpService,
+  [SupportedPlugins.Kafka]: KafkaService,
   [SupportedPlugins.OpenAPI]: HttpService,
   [SupportedPlugins.Postman]: PostmanService,
   [SupportedPlugins.CURL]: CurlService,
@@ -44,31 +45,34 @@ const TriggerServiceByTypeMap = {
   [TriggerTypes.grpc]: GrpcService,
   [TriggerTypes.http]: HttpService,
   [TriggerTypes.traceid]: TraceIDService,
+  [TriggerTypes.kafka]: KafkaService,
 } as const;
 
 const TestService = () => ({
-  async getRequest({type, name: pluginName}: IPlugin, draft: TDraftTest, original?: Test): Promise<TRawTest> {
+  async getRequest({type, name: pluginName}: IPlugin, draft: TDraftTest, original?: Test): Promise<TRawTestResource> {
     const {name, description} = draft;
     const triggerService = TriggerServiceMap[pluginName];
     const request = await triggerService.getRequest(draft);
 
+    const trigger = {
+      type,
+      triggerType: type,
+      [type]: request,
+    };
+
     return {
-      name,
-      description,
-      serviceUnderTest: {
-        triggerType: type,
-        triggerSettings: {
-          [type]: request,
-        },
-      },
-      ...(original
-        ? {
-            outputs: toRawTestOutputs(original.outputs ?? []),
-            specs: {
+      type: 'Test',
+      spec: {
+        name,
+        description,
+        trigger,
+        ...(original
+          ? {
+              outputs: toRawTestOutputs(original.outputs ?? []),
               specs: original.definition.specs.map(def => TestDefinitionService.toRaw(def)),
-            },
-          }
-        : {}),
+            }
+          : {}),
+      },
     };
   },
 
@@ -90,7 +94,7 @@ const TestService = () => ({
     };
   },
 
-  getUpdatedRawTest(test: Test, partialTest: Partial<Test>) {
+  getUpdatedRawTest(test: Test, partialTest: Partial<Test>): Promise<TRawTestResource> {
     const plugin = TriggerTypeToPlugin[test?.trigger?.type || TriggerTypes.http];
     const testTriggerData = this.getInitialValues(test);
     const updatedTest = {...test, ...partialTest};

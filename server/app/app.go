@@ -2,55 +2,67 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"os"
+	"regexp"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kubeshop/tracetest/server/analytics"
 	"github.com/kubeshop/tracetest/server/assertions/comparator"
 	"github.com/kubeshop/tracetest/server/config"
-	"github.com/kubeshop/tracetest/server/config/configresource"
-	"github.com/kubeshop/tracetest/server/config/demoresource"
+	"github.com/kubeshop/tracetest/server/config/demo"
+	"github.com/kubeshop/tracetest/server/datastore"
 	"github.com/kubeshop/tracetest/server/executor"
 	"github.com/kubeshop/tracetest/server/executor/pollingprofile"
+	"github.com/kubeshop/tracetest/server/executor/testrunner"
 	"github.com/kubeshop/tracetest/server/executor/trigger"
 	httpServer "github.com/kubeshop/tracetest/server/http"
 	"github.com/kubeshop/tracetest/server/http/mappings"
+	"github.com/kubeshop/tracetest/server/http/middleware"
 	"github.com/kubeshop/tracetest/server/http/websocket"
+	"github.com/kubeshop/tracetest/server/linter/analyzer"
 	"github.com/kubeshop/tracetest/server/model"
 	"github.com/kubeshop/tracetest/server/openapi"
 	"github.com/kubeshop/tracetest/server/otlp"
+	"github.com/kubeshop/tracetest/server/pkg/id"
+	"github.com/kubeshop/tracetest/server/pkg/pipeline"
 	"github.com/kubeshop/tracetest/server/provisioning"
 	"github.com/kubeshop/tracetest/server/resourcemanager"
 	"github.com/kubeshop/tracetest/server/subscription"
+	"github.com/kubeshop/tracetest/server/telemetry"
+	"github.com/kubeshop/tracetest/server/test"
+	"github.com/kubeshop/tracetest/server/testconnection"
 	"github.com/kubeshop/tracetest/server/testdb"
+	"github.com/kubeshop/tracetest/server/testsuite"
 	"github.com/kubeshop/tracetest/server/tracedb"
 	"github.com/kubeshop/tracetest/server/traces"
-	"github.com/kubeshop/tracetest/server/tracing"
+	"github.com/kubeshop/tracetest/server/variableset"
+	"github.com/kubeshop/tracetest/server/version"
+	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
 
 var (
-	Version = "dev"
-	Env     = "dev"
+	pgChannelName = "tracetest_queue"
 )
 
 var EmptyDemoEnabled []string
 
 type App struct {
-	cfg              *config.Config
+	cfg              *config.AppConfig
 	provisioningFile string
 	stopFns          []func()
 
 	serverID string
 }
 
-func New(config *config.Config) (*App, error) {
+func New(config *config.AppConfig) (*App, error) {
 	app := &App{
 		cfg: config,
 	}
@@ -59,7 +71,7 @@ func New(config *config.Config) (*App, error) {
 }
 
 func (app *App) Version() string {
-	return fmt.Sprintf("tracetest-server %s (%s)", Version, Env)
+	return fmt.Sprintf("tracetest-server %s (%s)", version.Version, version.Env)
 }
 
 func (app *App) Stop() {
@@ -110,9 +122,9 @@ func provision(provisioner *provisioning.Provisioner, file string) {
 }
 
 func (app *App) subscribeToConfigChanges(sm *subscription.Manager) {
-	sm.Subscribe(configresource.ResourceID, subscription.NewSubscriberFunction(
+	sm.Subscribe(config.ResourceID, subscription.NewSubscriberFunction(
 		func(m subscription.Message) error {
-			configFromDB, ok := m.Content.(configresource.Config)
+			configFromDB, ok := m.Content.(config.Config)
 			if !ok {
 				return fmt.Errorf("cannot read update to configFromDB. unexpected type %T", m.Content)
 			}
@@ -122,11 +134,15 @@ func (app *App) subscribeToConfigChanges(sm *subscription.Manager) {
 	)
 }
 
-func (app *App) initAnalytics(configFromDB configresource.Config) error {
-	return analytics.Init(configFromDB.IsAnalyticsEnabled(), app.serverID, Version, Env)
+func (app *App) initAnalytics(configFromDB config.Config) error {
+	return analytics.Init(configFromDB.IsAnalyticsEnabled(), app.serverID, version.Version, version.Env, app.cfg.AnalyticsServerKey(), app.cfg.AnalyticsFrontendKey())
 }
 
+var instanceID = id.GenerateID().String()
+
 func (app *App) Start(opts ...appOption) error {
+	// instanceID is a temprary ID for this instance of the server
+	// it is regenerated on every start intentionally
 	for _, opt := range opts {
 		opt(app)
 	}
@@ -134,31 +150,50 @@ func (app *App) Start(opts ...appOption) error {
 	fmt.Println("Starting")
 	ctx := context.Background()
 
+	poolcfg, err := pgxpool.ParseConfig(app.cfg.PostgresConnString())
+	if err != nil {
+		return err
+	}
+	poolcfg.MaxConns = 20
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolcfg)
+	if err != nil {
+		return err
+	}
+
 	db, err := testdb.Connect(app.cfg.PostgresConnString())
 	if err != nil {
 		return err
 	}
+	db.SetMaxOpenConns(80)
+
 	testDB, err := testdb.Postgres(
 		testdb.WithDB(db),
 	)
 
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	subscriptionManager := subscription.NewManager()
 	app.subscribeToConfigChanges(subscriptionManager)
 
-	configRepo := configresource.NewRepository(db, configresource.WithPublisher(subscriptionManager))
+	configRepo := config.NewRepository(db, config.WithPublisher(subscriptionManager))
 	configFromDB := configRepo.Current(ctx)
 
+	tracer, err := telemetry.NewTracer(ctx, app.cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tracer, err := tracing.NewTracer(ctx, app.cfg)
+	meter, err := telemetry.NewMeter(ctx, app.cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	app.registerStopFn(func() {
 		fmt.Println("stopping tracer")
-		tracing.ShutdownTracer(ctx)
+		telemetry.ShutdownTracer(ctx)
 	})
 
 	serverID, isNewInstall, err := testDB.ServerID()
@@ -174,87 +209,148 @@ func (app *App) Start(opts ...appOption) error {
 
 	fmt.Println("New install?", isNewInstall)
 	if isNewInstall {
-		err = analytics.SendEvent("Install", "beacon", "")
+		err = analytics.SendEvent("Install", "beacon", "", nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	applicationTracer, err := tracing.GetApplicationTracer(ctx, app.cfg)
+	applicationTracer, err := telemetry.GetApplicationTracer(ctx, app.cfg)
 	if err != nil {
 		return fmt.Errorf("could not create trigger span tracer: %w", err)
 	}
 
 	triggerRegistry := getTriggerRegistry(tracer, applicationTracer)
 
+	demoRepo := demo.NewRepository(db)
 	pollingProfileRepo := pollingprofile.NewRepository(db)
+	dataStoreRepo := datastore.NewRepository(db)
+	variableSetRepo := variableset.NewRepository(db)
+	linterRepo := analyzer.NewRepository(db)
+	testRepo := test.NewRepository(db)
+	runRepo := test.NewRunRepository(db)
+	testRunnerRepo := testrunner.NewRepository(db)
+	tracesRepo := traces.NewTraceRepository(db)
 
-	rf := newRunnerFacades(
+	testSuiteRepository := testsuite.NewRepository(db, testRepo)
+	testSuiteRunRepository := testsuite.NewRunRepository(db, runRepo)
+
+	tracedbFactory := tracedb.Factory(tracesRepo)
+
+	if app.cfg.OtlpServerEnabled() {
+		eventEmitter := executor.NewEventEmitter(testDB, subscriptionManager)
+		registerOtlpServer(app, tracesRepo, runRepo, eventEmitter, dataStoreRepo, tracer)
+	}
+
+	natsConn, err := nats.Connect(app.cfg.NATSEndpoint())
+	if err != nil {
+		log.Printf("could not connect to NATS: %s. Defaulting to InMemory Queues", err)
+	}
+
+	executorDriverFactory := pipeline.NewDriverFactory[executor.Job](natsConn)
+	testPipeline := buildTestPipeline(
+		executorDriverFactory,
+		pool,
 		pollingProfileRepo,
+		dataStoreRepo,
+		linterRepo,
+		testRunnerRepo,
 		testDB,
-		applicationTracer,
+		testRepo,
+		runRepo,
 		tracer,
 		subscriptionManager,
 		triggerRegistry,
+		tracedbFactory,
+		app.cfg,
+		meter,
+	)
+	testPipeline.Start()
+	app.registerStopFn(func() {
+		testPipeline.Stop()
+	})
+
+	testSuitePipeline := buildTestSuitePipeline(
+		testSuiteRepository,
+		testSuiteRunRepository,
+		testPipeline,
+		subscriptionManager,
+		meter,
 	)
 
-	// worker count. should be configurable
-	rf.tracePoller.Start(5)
-	rf.runner.Start(5)
-	rf.runner.Start(5)
-	rf.transactionRunner.Start(5)
-	rf.assertionRunner.Start(5)
-
+	testSuitePipeline.Start()
 	app.registerStopFn(func() {
-		fmt.Println("stopping tracePoller")
-		rf.tracePoller.Stop()
-	})
-	app.registerStopFn(func() {
-		fmt.Println("stopping runner")
-		rf.runner.Stop()
-	})
-	app.registerStopFn(func() {
-		fmt.Println("stopping transactionRunner")
-		rf.transactionRunner.Stop()
-	})
-	app.registerStopFn(func() {
-		fmt.Println("stopping assertionRunner")
-		rf.assertionRunner.Stop()
+		testSuitePipeline.Stop()
 	})
 
-	err = analytics.SendEvent("Server Started", "beacon", "")
+	testConnectionDriverFactory := pipeline.NewDriverFactory[testconnection.Job](natsConn)
+	dsTestListener := testconnection.NewListener()
+	dsTestPipeline := buildDataStoreTestPipeline(
+		testConnectionDriverFactory,
+		dsTestListener,
+		tracer,
+		tracedbFactory,
+		app.cfg,
+		meter,
+	)
+
+	dsTestPipeline.Start()
+	app.registerStopFn(func() {
+		dsTestPipeline.Stop()
+	})
+
+	err = analytics.SendEvent("Server Started", "beacon", "", nil)
 	if err != nil {
 		return err
 	}
 
-	otlpServer := otlp.NewServer(":21321", testDB)
-	go otlpServer.Start()
-	app.registerStopFn(func() {
-		fmt.Println("stopping otlp server")
-		otlpServer.Stop()
-	})
-
 	provisioner := provisioning.New()
 
-	router, mappers := controller(app.cfg, testDB, tracer, rf, triggerRegistry)
+	router, mappers := controller(app.cfg,
+		tracer,
+		meter,
+
+		testPipeline,
+		testSuitePipeline,
+		dsTestPipeline,
+
+		testDB,
+		testSuiteRepository,
+		testSuiteRunRepository,
+		testRepo,
+		runRepo,
+		variableSetRepo,
+		tracedbFactory,
+	)
 	registerWSHandler(router, mappers, subscriptionManager)
 
-	apiRouter := router.PathPrefix("/api").Subrouter()
-	registerConfigResource(configRepo, apiRouter, db, provisioner)
+	// report metrics about endpoints, this is the first middleware to be run so
+	// it also accounts for the duration of all other middlewares
+	router.Use(middleware.NewMetricMiddleware(meter))
 
-	registerPollingProfilesResource(pollingProfileRepo, apiRouter, db, provisioner)
+	// use the analytics middleware on complete router
+	router.Use(analyticsMW)
 
-	demoRepo := demoresource.NewRepository(db)
-	registerDemosResource(demoRepo, apiRouter, db, provisioner)
+	// use the tenant middleware on complete router
+	router.Use(middleware.TenantMiddleware)
 
-	dataStoreManager := resourcemanager.New[testdb.DataStoreResource](
-		testdb.DataStoreResourceName,
-		testdb.NewDataStoreResourceProvisioner(testDB),
-		resourcemanager.WithOperations(resourcemanager.OperationNoop),
-	)
-	provisioner.AddResourceProvisioner(dataStoreManager)
+	apiRouter := router.
+		PathPrefix(app.cfg.ServerPathPrefix()).
+		PathPrefix("/api").
+		Subrouter()
 
-	registerSPAHandler(router, app.cfg, configFromDB.IsAnalyticsEnabled(), serverID)
+	registerTestSuiteResource(testSuiteRepository, apiRouter, provisioner, tracer)
+	registerConfigResource(configRepo, apiRouter, provisioner, tracer)
+	registerPollingProfilesResource(pollingProfileRepo, apiRouter, provisioner, tracer)
+	registerVariableSetResource(variableSetRepo, apiRouter, provisioner, tracer)
+	registerDemosResource(demoRepo, apiRouter, provisioner, tracer)
+	registerDataStoreResource(dataStoreRepo, apiRouter, provisioner, tracer)
+	registerAnalyzer(linterRepo, apiRouter, provisioner, tracer)
+	registerTestRunner(testRunnerRepo, apiRouter, provisioner, tracer)
+	registerTestResource(testRepo, apiRouter, provisioner, tracer)
+
+	isTracetestDev := os.Getenv("TRACETEST_DEV") != ""
+	registerSPAHandler(router, app.cfg, configFromDB.IsAnalyticsEnabled(), serverID, isTracetestDev)
 
 	if isNewInstall {
 		provision(provisioner, app.provisioningFile)
@@ -276,7 +372,43 @@ func (app *App) Start(opts ...appOption) error {
 	return nil
 }
 
-func registerSPAHandler(router *mux.Router, cfg httpServerConfig, analyticsEnabled bool, serverID string) {
+var (
+	matchFirstCap     = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap       = regexp.MustCompile("([a-z0-9])([A-Z])")
+	matchResourceName = regexp.MustCompile(`(\w)(\.)(\w)`)
+)
+
+func toWords(str string) string {
+	if matchResourceName.MatchString(str) {
+		return str
+	}
+	words := matchFirstCap.ReplaceAllString(str, "${1} ${2}")
+	words = matchAllCap.ReplaceAllString(words, "${1} ${2}")
+	return words
+}
+
+// Analytics global middleware
+func analyticsMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		routeName := mux.CurrentRoute(r).GetName()
+		machineID := r.Header.Get("x-client-id")
+		source := r.Header.Get("x-source")
+		eventProperties := r.Header.Get("x-event-properties")
+
+		eventData := map[string]string{
+			"source": source,
+		}
+		eventData = analytics.InjectProperties(eventData, eventProperties)
+
+		if routeName != "" {
+			analytics.SendEvent(toWords(routeName), "test", machineID, &eventData)
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func registerSPAHandler(router *mux.Router, cfg httpServerConfig, analyticsEnabled bool, serverID string, isTracetestDev bool) {
 	router.
 		PathPrefix(cfg.ServerPathPrefix()).
 		Handler(
@@ -284,110 +416,140 @@ func registerSPAHandler(router *mux.Router, cfg httpServerConfig, analyticsEnabl
 				cfg,
 				analyticsEnabled,
 				serverID,
-				Version,
-				Env,
+				version.Version,
+				version.Env,
+				isTracetestDev,
 			),
 		)
-
 }
 
-func registerConfigResource(configRepo *configresource.Repository, router *mux.Router, db *sql.DB, provisioner *provisioning.Provisioner) {
-	manager := resourcemanager.New[configresource.Config](
-		configresource.ResourceName,
-		configRepo,
-		resourcemanager.WithOperations(configresource.Operations...),
+func registerOtlpServer(app *App, tracesRepo *traces.TraceRepository, runRepository test.RunRepository, eventEmitter executor.EventEmitter, dsRepo *datastore.Repository, tracer trace.Tracer) {
+	ingester := otlp.NewIngester(tracesRepo, runRepository, eventEmitter, dsRepo, tracer)
+	grpcOtlpServer := otlp.NewGrpcServer(":4317", ingester, tracer)
+	httpOtlpServer := otlp.NewHttpServer(":4318", ingester)
+	go grpcOtlpServer.Start()
+	go httpOtlpServer.Start()
+
+	fmt.Println("OTLP server started on :4317 (grpc) and :4318 (http)")
+
+	app.registerStopFn(func() {
+		fmt.Println("stopping otlp server")
+		grpcOtlpServer.Stop()
+		httpOtlpServer.Stop()
+	})
+}
+
+func registerAnalyzer(linterRepo *analyzer.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[analyzer.Linter](
+		analyzer.ResourceName,
+		analyzer.ResourceNamePlural,
+		linterRepo,
+		resourcemanager.DisableDelete(),
+		resourcemanager.WithTracer(tracer),
 	)
 	manager.RegisterRoutes(router)
 	provisioner.AddResourceProvisioner(manager)
 }
 
-func registerPollingProfilesResource(repository *pollingprofile.Repository, router *mux.Router, db *sql.DB, provisioner *provisioning.Provisioner) {
+func registerTestRunner(testRunnerRepo *testrunner.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[testrunner.TestRunner](
+		testrunner.ResourceName,
+		testrunner.ResourceNamePlural,
+		testRunnerRepo,
+		resourcemanager.DisableDelete(),
+		resourcemanager.WithTracer(tracer),
+	)
+	manager.RegisterRoutes(router)
+	provisioner.AddResourceProvisioner(manager)
+}
+
+func registerTestSuiteResource(repo *testsuite.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[testsuite.TestSuite](
+		testsuite.TestSuiteResourceName,
+		testsuite.TestSuiteResourceNamePlural,
+		repo,
+		resourcemanager.CanBeAugmented(),
+		resourcemanager.WithTracer(tracer),
+	)
+	manager.RegisterRoutes(router)
+	provisioner.AddResourceProvisioner(manager)
+}
+
+func registerConfigResource(configRepo *config.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[config.Config](
+		config.ResourceName,
+		config.ResourceNamePlural,
+		configRepo,
+		resourcemanager.DisableDelete(),
+		resourcemanager.WithTracer(tracer),
+	)
+	manager.RegisterRoutes(router)
+	provisioner.AddResourceProvisioner(manager)
+}
+
+func registerPollingProfilesResource(repository *pollingprofile.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
 	manager := resourcemanager.New[pollingprofile.PollingProfile](
 		pollingprofile.ResourceName,
+		pollingprofile.ResourceNamePlural,
 		repository,
-		resourcemanager.WithOperations(pollingprofile.Operations...),
+		resourcemanager.DisableDelete(),
+		resourcemanager.WithTracer(tracer),
 	)
 	manager.RegisterRoutes(router)
 	provisioner.AddResourceProvisioner(manager)
 }
 
-func registerDemosResource(repository *demoresource.Repository, router *mux.Router, db *sql.DB, provisioner *provisioning.Provisioner) {
-	manager := resourcemanager.New[demoresource.Demo](
-		demoresource.ResourceName,
+func registerVariableSetResource(repository *variableset.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[variableset.VariableSet](
+		variableset.ResourceName,
+		variableset.ResourceNamePlural,
 		repository,
-		resourcemanager.WithOperations(demoresource.Operations...),
+		resourcemanager.WithTracer(tracer),
 	)
 	manager.RegisterRoutes(router)
 	provisioner.AddResourceProvisioner(manager)
 }
 
-type facadeConfig interface {
-	PoolingRetryDelay() time.Duration
-	PoolingMaxWaitTimeForTraceDuration() time.Duration
+func registerDemosResource(repository *demo.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[demo.Demo](
+		demo.ResourceName,
+		demo.ResourceNamePlural,
+		repository,
+		resourcemanager.WithTracer(tracer),
+	)
+	manager.RegisterRoutes(router)
+	provisioner.AddResourceProvisioner(manager)
 }
 
-func newRunnerFacades(
-	ppRepo *pollingprofile.Repository,
-	testDB model.Repository,
-	appTracer trace.Tracer,
-	tracer trace.Tracer,
-	subscriptionManager *subscription.Manager,
-	triggerRegistry *trigger.Registry,
-) *runnerFacade {
-
-	execTestUpdater := (executor.CompositeUpdater{}).
-		Add(executor.NewDBUpdater(testDB)).
-		Add(executor.NewSubscriptionUpdater(subscriptionManager))
-
-	assertionRunner := executor.NewAssertionRunner(
-		execTestUpdater,
-		executor.NewAssertionExecutor(tracer),
-		executor.InstrumentedOutputProcessor(tracer),
-		subscriptionManager,
+func registerDataStoreResource(repository *datastore.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[datastore.DataStore](
+		datastore.ResourceName,
+		datastore.ResourceNamePlural,
+		repository,
+		resourcemanager.WithTracer(tracer),
 	)
+	manager.RegisterRoutes(router)
+	provisioner.AddResourceProvisioner(manager)
+}
 
-	pollerExecutor := executor.NewPollerExecutor(
-		ppRepo,
-		tracer,
-		execTestUpdater,
-		tracedb.Factory(testDB),
-		testDB,
+func registerTestResource(repository test.Repository, router *mux.Router, provisioner *provisioning.Provisioner, tracer trace.Tracer) {
+	manager := resourcemanager.New[test.Test](
+		test.ResourceName,
+		test.ResourceNamePlural,
+		repository,
+		resourcemanager.WithTracer(tracer),
+		resourcemanager.CanBeAugmented(),
 	)
-
-	tracePoller := executor.NewTracePoller(
-		pollerExecutor,
-		ppRepo,
-		execTestUpdater,
-		assertionRunner,
-		subscriptionManager,
-	)
-
-	runner := executor.NewPersistentRunner(
-		triggerRegistry,
-		testDB,
-		execTestUpdater,
-		tracePoller,
-		tracer,
-		subscriptionManager,
-		tracedb.Factory(testDB),
-		testDB,
-	)
-
-	transactionRunner := executor.NewTransactionRunner(runner, testDB, subscriptionManager)
-
-	return &runnerFacade{
-		runner:            runner,
-		transactionRunner: transactionRunner,
-		assertionRunner:   assertionRunner,
-		tracePoller:       tracePoller,
-	}
+	manager.RegisterRoutes(router)
+	provisioner.AddResourceProvisioner(manager)
 }
 
 func getTriggerRegistry(tracer, appTracer trace.Tracer) *trigger.Registry {
-	triggerReg := trigger.NewRegsitry(tracer, appTracer)
+	triggerReg := trigger.NewRegistry(tracer, appTracer)
 	triggerReg.Add(trigger.HTTP())
 	triggerReg.Add(trigger.GRPC())
 	triggerReg.Add(trigger.TRACEID())
+	triggerReg.Add(trigger.Kafka())
 
 	return triggerReg
 }
@@ -410,27 +572,87 @@ func registerWSHandler(router *mux.Router, mappers mappings.Mappings, subscripti
 
 func controller(
 	cfg httpServerConfig,
-	testDB model.Repository,
-	tracer trace.Tracer,
-	rf *runnerFacade,
-	triggerRegistry *trigger.Registry,
-) (*mux.Router, mappings.Mappings) {
-	mappers := mappings.New(tracesConversionConfig(), comparator.DefaultRegistry(), testDB)
 
-	router := openapi.NewRouter(httpRouter(cfg, testDB, tracer, rf, mappers, triggerRegistry))
+	tracer trace.Tracer,
+	meter metric.Meter,
+
+	testRunner *executor.TestPipeline,
+	testSuitesRunner *executor.TestSuitesPipeline,
+
+	dsTestRunner *testconnection.DataStoreTestPipeline,
+
+	testRunEvents model.TestRunEventRepository,
+	transactionRepo *testsuite.Repository,
+	transactionRunRepo *testsuite.RunRepository,
+	testRepo test.Repository,
+	testRunRepo test.RunRepository,
+	variablesetRepo *variableset.Repository,
+	tracedbFactory tracedb.FactoryFunc,
+) (*mux.Router, mappings.Mappings) {
+	mappers := mappings.New(tracesConversionConfig(), comparator.DefaultRegistry())
+
+	router := openapi.NewRouter(httpRouter(
+		cfg,
+
+		tracer,
+		meter,
+
+		testRunner,
+		testSuitesRunner,
+		dsTestRunner,
+
+		testRunEvents,
+		transactionRepo,
+		transactionRunRepo,
+		testRepo,
+		testRunRepo,
+		variablesetRepo,
+		tracedbFactory,
+
+		mappers,
+	))
 
 	return router, mappers
 }
 
 func httpRouter(
 	cfg httpServerConfig,
-	testDB model.Repository,
+
 	tracer trace.Tracer,
-	rf *runnerFacade,
+	meter metric.Meter,
+
+	testRunner *executor.TestPipeline,
+	testSuitesRunner *executor.TestSuitesPipeline,
+	dsTestRunner *testconnection.DataStoreTestPipeline,
+
+	testRunEvents model.TestRunEventRepository,
+	testSuiteRepo *testsuite.Repository,
+	testSuiteRunRepo *testsuite.RunRepository,
+	testRepo test.Repository,
+	testRunRepo test.RunRepository,
+	variableSetRepo *variableset.Repository,
+	tracedbFactory tracedb.FactoryFunc,
+
 	mappers mappings.Mappings,
-	triggerRegistry *trigger.Registry,
 ) openapi.Router {
-	controller := httpServer.NewController(testDB, tracedb.Factory(testDB), rf, mappers, triggerRegistry)
+	controller := httpServer.NewController(
+		tracer,
+
+		testRunner,
+		testSuitesRunner,
+		dsTestRunner,
+
+		testRunEvents,
+		testSuiteRepo,
+		testSuiteRunRepo,
+		testRepo,
+		testRunRepo,
+		variableSetRepo,
+
+		tracedbFactory,
+		mappers,
+		version.Version,
+	)
 	apiApiController := openapi.NewApiApiController(controller)
 	customController := httpServer.NewCustomController(controller, apiApiController, openapi.DefaultErrorHandler, tracer)
 	httpRouter := customController

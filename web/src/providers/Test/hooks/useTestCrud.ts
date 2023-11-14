@@ -1,38 +1,49 @@
 import {useCallback} from 'react';
-import {useMatch, useNavigate} from 'react-router-dom';
-import {useAppDispatch} from 'redux/hooks';
-import {reset} from 'redux/slices/TestSpecs.slice';
-import {TDraftTest} from 'types/Test.types';
-import {useTestSpecs} from 'providers/TestSpecs/TestSpecs.provider';
-import TestAnalyticsService from 'services/Analytics/TestAnalytics.service';
+import {noop} from 'lodash';
+import {useMatch} from 'react-router-dom';
 import {TriggerTypeToPlugin} from 'constants/Plugins.constants';
 import {TriggerTypes} from 'constants/Test.constants';
-import TestService from 'services/Test.service';
-import {useEditTestMutation, useRunTestMutation} from 'redux/apis/TraceTest.api';
-import {useEnvironment} from 'providers/Environment/Environment.provider';
-import {useMissingVariablesModal} from 'providers/MissingVariablesModal/MissingVariablesModal.provider';
-import {RunErrorTypes} from 'types/TestRun.types';
-import {TEnvironmentValue} from 'models/Environment.model';
-import Test from 'models/Test.model';
+import {TVariableSetValue} from 'models/VariableSet.model';
 import RunError from 'models/RunError.model';
+import Test from 'models/Test.model';
+import {useDashboard} from 'providers/Dashboard/Dashboard.provider';
+import {useVariableSet} from 'providers/VariableSet';
+import {useMissingVariablesModal} from 'providers/MissingVariablesModal/MissingVariablesModal.provider';
+import {useTestSpecs} from 'providers/TestSpecs/TestSpecs.provider';
+import TracetestAPI from 'redux/apis/Tracetest';
+import {useAppDispatch} from 'redux/hooks';
+import {reset} from 'redux/slices/TestSpecs.slice';
+import TestAnalyticsService from 'services/Analytics/TestAnalytics.service';
+import TestService from 'services/Test.service';
+import {TDraftTest} from 'types/Test.types';
+import {RunErrorTypes} from 'types/TestRun.types';
+
+const {useEditTestMutation, useRunTestMutation} = TracetestAPI.instance;
+
+export type TTestRunRequest = {
+  test: Test;
+  variableSetId?: string;
+  variables?: TVariableSetValue[];
+  onCancel?(): void;
+};
 
 const useTestCrud = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  const {navigate} = useDashboard();
   const {updateIsInitialized} = useTestSpecs();
   const [editTest, {isLoading: isLoadingEditTest}] = useEditTestMutation();
   const [runTestAction, {isLoading: isLoadingRunTest}] = useRunTestMutation();
   const isEditLoading = isLoadingEditTest || isLoadingRunTest;
   const match = useMatch('/test/:testId/run/:runId/:mode');
-  const {selectedEnvironment} = useEnvironment();
+  const {selectedVariableSet} = useVariableSet();
   const {onOpen} = useMissingVariablesModal();
 
   const runTest = useCallback(
-    async (test: Test, runId?: string, environmentId = selectedEnvironment?.id) => {
-      const run = async (variables: TEnvironmentValue[] = []) => {
+    async ({test, variableSetId = selectedVariableSet?.id, variables = [], onCancel = noop}: TTestRunRequest) => {
+      const run = async (updatedVars: TVariableSetValue[] = variables) => {
         try {
           TestAnalyticsService.onRunTest();
-          const {id} = await runTestAction({testId: test.id, environmentId, variables}).unwrap();
+          const {id} = await runTestAction({testId: test.id, variableSetId, variables: updatedVars}).unwrap();
           dispatch(reset());
 
           const mode = match?.params.mode || 'trigger';
@@ -47,6 +58,7 @@ const useTestCrud = () => {
               onSubmit(missing) {
                 run(missing);
               },
+              onCancel,
             });
           else throw error;
         }
@@ -54,7 +66,7 @@ const useTestCrud = () => {
 
       run();
     },
-    [dispatch, match?.params.mode, navigate, onOpen, runTestAction, selectedEnvironment?.id]
+    [dispatch, match?.params.mode, navigate, onOpen, runTestAction, selectedVariableSet?.id]
   );
 
   const edit = useCallback(
@@ -69,7 +81,9 @@ const useTestCrud = () => {
         testId,
       }).unwrap();
 
-      runTest(test);
+      runTest({
+        test,
+      });
     },
     [editTest, runTest, updateIsInitialized]
   );

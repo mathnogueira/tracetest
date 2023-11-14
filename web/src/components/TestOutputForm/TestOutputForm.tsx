@@ -1,6 +1,10 @@
+import {startCompletion} from '@codemirror/autocomplete';
+import {EditorView} from '@codemirror/view';
 import {Button, Form, Input, Tag} from 'antd';
+import {delay} from 'lodash';
 import {useEffect} from 'react';
 
+import AllowButton, {Operation} from 'components/AllowButton';
 import Editor from 'components/Editor';
 import {EXPRESSIONS_DOCUMENTATION_URL, SELECTOR_LANGUAGE_CHEAT_SHEET_URL} from 'constants/Common.constants';
 import {SupportedEditors} from 'constants/Editor.constants';
@@ -8,7 +12,6 @@ import {useAppSelector} from 'redux/hooks';
 import SpanSelectors from 'selectors/Span.selectors';
 import {singularOrPlural} from 'utils/Common';
 import TestOutput from 'models/TestOutput.model';
-import useValidateOutput from './hooks/useValidateOutput';
 import SelectorInput from './SelectorInput';
 import * as S from './TestOutputForm.styled';
 
@@ -17,16 +20,27 @@ interface IProps {
   isLoading?: boolean;
   onCancel(): void;
   onSubmit(values: TestOutput, spanId?: string): void;
+  onValidate(_: any, output: TestOutput): void;
+  isValid: boolean;
   output?: TestOutput;
-  runId: string;
+  runId: number;
   testId: string;
 }
 
-const TestOutputForm = ({isEditing = false, isLoading = false, onCancel, onSubmit, output, runId, testId}: IProps) => {
+const TestOutputForm = ({
+  isEditing = false,
+  isLoading = false,
+  onCancel,
+  onSubmit,
+  output,
+  runId,
+  testId,
+  onValidate,
+  isValid,
+}: IProps) => {
   const [form] = Form.useForm<TestOutput>();
-  const spanIdList = useAppSelector(SpanSelectors.selectMatchedSpans);
-  const {isValid, onValidate} = useValidateOutput({spanIdList});
   const selector = Form.useWatch('selector', form) || '';
+  const spanIdList = useAppSelector(SpanSelectors.selectMatchedSpans);
 
   useEffect(() => {
     if (form.getFieldValue('selector') && form.getFieldValue('value') && form.getFieldValue('name')) {
@@ -34,6 +48,22 @@ const TestOutputForm = ({isEditing = false, isLoading = false, onCancel, onSubmi
       form.validateFields();
     }
   }, [form, onValidate]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      form.setFieldsValue({selector: output?.selector, value: output?.value, name: output?.name});
+    }
+  }, [form, isEditing, output?.name, output?.selector, output?.value]);
+
+  useEffect(() => {
+    return () => {
+      onCancel();
+    };
+  }, []);
+
+  const onAttributeFocus = (view: EditorView) => {
+    if (!view?.state.doc.length) delay(() => startCompletion(view!), 0);
+  };
 
   return (
     <S.Container>
@@ -48,7 +78,7 @@ const TestOutputForm = ({isEditing = false, isLoading = false, onCancel, onSubmi
         onFinish={values => onSubmit(values, spanIdList[0])}
         onValuesChange={onValidate}
       >
-        <Form.Item name="spanId" />
+        <Form.Item hidden name="spanId" />
         <S.FormSection>
           <S.FormSectionHeaderSelector>
             <S.FormSectionRow1>
@@ -83,6 +113,7 @@ const TestOutputForm = ({isEditing = false, isLoading = false, onCancel, onSubmi
               }}
               placeholder="Attribute"
               type={SupportedEditors.Expression}
+              onFocus={onAttributeFocus}
             />
           </Form.Item>
         </S.FormSection>
@@ -101,9 +132,16 @@ const TestOutputForm = ({isEditing = false, isLoading = false, onCancel, onSubmi
           <Button data-cy="output-modal-cancel-button" onClick={onCancel}>
             Cancel
           </Button>
-          <Button data-cy="output-save-button" disabled={!isValid} htmlType="submit" loading={isLoading} type="primary">
+          <AllowButton
+            operation={Operation.Edit}
+            data-cy="output-save-button"
+            disabled={!isValid}
+            htmlType="submit"
+            loading={isLoading}
+            type="primary"
+          >
             Save Test Output
-          </Button>
+          </AllowButton>
         </S.Footer>
       </Form>
     </S.Container>

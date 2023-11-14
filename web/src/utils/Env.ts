@@ -5,12 +5,15 @@ type TEnv = keyof IEnv;
 const emptyValues: IEnv = {
   analyticsEnabled: false,
   appVersion: '',
+  baseApiUrl: `${document.baseURI}api/`,
   env: '',
   experimentalFeatures: [],
   measurementId: '',
   serverID: '',
   serverPathPrefix: '/',
   segmentLoaded: false,
+  isTracetestDev: false,
+  posthogKey: '',
 };
 
 const Env = {

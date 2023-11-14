@@ -40,6 +40,9 @@ export const TestListContainer = styled.div`
 `;
 
 export const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: ${({theme}) => `1px solid ${theme.color.borderLight}`};
   padding: 23px 0;
   width: 100%;
@@ -70,4 +73,9 @@ export const ConfigIcon = styled.img`
 
 export const ConfigFooter = styled.div`
   margin: 20px 0;
+`;
+
+export const Link = styled.a`
+  color: ${({theme}) => theme.color.primary};
+  font-weight: 600;
 `;

@@ -2,28 +2,17 @@ package testdb
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/kubeshop/tracetest/server/id"
 	"github.com/kubeshop/tracetest/server/migrations"
 )
 
 type postgresDB struct {
 	db *sql.DB
-}
-
-var (
-	IDGen       = id.NewRandGenerator()
-	ErrNotFound = errors.New("record not found")
-)
-
-type scanner interface {
-	Scan(dest ...interface{}) error
 }
 
 func Postgres(options ...PostgresOption) (*postgresDB, error) {
@@ -69,10 +58,10 @@ func (p *postgresDB) ensureLatestMigration() error {
 func (td *postgresDB) Drop() error {
 	return dropTables(
 		td,
-		"transaction_run_steps",
-		"transaction_runs",
-		"transaction_steps",
-		"transactions",
+		"test_suite_run_steps",
+		"test_suite_runs",
+		"test_suite_steps",
+		"test_suites",
 		"test_runs",
 		"tests",
 		"environments",

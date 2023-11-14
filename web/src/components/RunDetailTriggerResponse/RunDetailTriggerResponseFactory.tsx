@@ -5,7 +5,9 @@ import RunDetailTriggerData from './RunDetailTriggerData';
 import RunDetailTriggerResponse from './RunDetailTriggerResponse';
 
 export interface IPropsComponent {
+  runId: number;
   state: TTestRunState;
+  testId: string;
   triggerResult?: TriggerResult;
   triggerTime?: number;
 }
@@ -14,6 +16,7 @@ const ComponentMap: Record<TriggerTypes, (props: IPropsComponent) => React.React
   [TriggerTypes.http]: RunDetailTriggerResponse,
   [TriggerTypes.grpc]: RunDetailTriggerResponse,
   [TriggerTypes.traceid]: RunDetailTriggerData,
+  [TriggerTypes.kafka]: RunDetailTriggerResponse,
 };
 
 interface IProps extends IPropsComponent {

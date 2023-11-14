@@ -1,9 +1,14 @@
 import {useCallback} from 'react';
-import {useNavigate} from 'react-router-dom';
 
+import {RouterSearchFields} from 'constants/Common.constants';
+import useBlockNavigation from 'hooks/useBlockNavigation';
 import AssertionResults from 'models/AssertionResults.model';
 import Test from 'models/Test.model';
 import TestSpecs, {TTestSpecEntry} from 'models/TestSpecs.model';
+import {useConfirmationModal} from 'providers/ConfirmationModal/ConfirmationModal.provider';
+import {useDashboard} from 'providers/Dashboard/Dashboard.provider';
+import {useNotification} from 'providers/Notification/Notification.provider';
+import RouterActions from 'redux/actions/Router.actions';
 import TestSpecsActions from 'redux/actions/TestSpecs.actions';
 import {useAppDispatch} from 'redux/hooks';
 import {
@@ -19,14 +24,9 @@ import {
   setPrevSelector as setPrevSelectorAction,
 } from 'redux/slices/TestSpecs.slice';
 import {ISuggestion} from 'types/TestSpecs.types';
-import useBlockNavigation from 'hooks/useBlockNavigation';
-import RouterActions from 'redux/actions/Router.actions';
-import {RouterSearchFields} from 'constants/Common.constants';
-import {useConfirmationModal} from 'providers/ConfirmationModal/ConfirmationModal.provider';
-import {useNotification} from 'providers/Notification/Notification.provider';
 
 interface IProps {
-  runId: string;
+  runId: number;
   testId: string;
   test: Test;
   isDraftMode: boolean;
@@ -36,7 +36,7 @@ interface IProps {
 const useTestSpecsCrud = ({runId, testId, test, isDraftMode, assertionResults}: IProps) => {
   useBlockNavigation(isDraftMode);
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  const {navigate} = useDashboard();
   const {onOpen} = useConfirmationModal();
   const {showNotification} = useNotification();
 
@@ -74,7 +74,7 @@ const useTestSpecsCrud = ({runId, testId, test, isDraftMode, assertionResults}: 
 
     showNotification({
       type: 'success',
-      title: 'Your test has been published successfully',
+      title: 'Your test has been saved successfully',
       description: 'A new test run has been generated.',
     });
 

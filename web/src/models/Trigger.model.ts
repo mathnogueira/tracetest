@@ -5,6 +5,7 @@ import {TTriggerRequest} from 'types/Test.types';
 import GrpcRequest from './GrpcRequest.model';
 import HttpRequest from './HttpRequest.model';
 import TraceIDRequest from './TraceIDRequest.model';
+import KafkaRequest from './KafkaRequest.model';
 
 export type TRawTrigger = TTriggerSchemas['Trigger'];
 type Trigger = {
@@ -33,24 +34,36 @@ const EntryData = {
       method: 'TraceID',
     };
   },
+  [TriggerTypes.kafka](request: object) {
+    let entryPoint = '';
+
+    const kafkaRequest = request as KafkaRequest;
+    if (kafkaRequest) {
+      entryPoint = kafkaRequest.brokerUrls.join(', ');
+    }
+
+    return {
+      entryPoint,
+      method: 'Kafka',
+    };
+  },
 };
 
-const Trigger = ({
-  triggerType = 'http',
-  triggerSettings: {http = {}, grpc = {}, traceid = {}} = {},
-}: TRawTrigger): Trigger => {
-  const type = triggerType as TriggerTypes;
+const Trigger = ({type: rawType = 'http', httpRequest = {}, grpc = {}, traceid = {}, kafka = {}}: TRawTrigger): Trigger => {
+  const type = rawType as TriggerTypes;
 
   let request = {} as TTriggerRequest;
   if (type === TriggerTypes.http) {
-    request = HttpRequest(http);
+    request = HttpRequest(httpRequest);
   } else if (type === TriggerTypes.grpc) {
     request = GrpcRequest(grpc);
   } else if (type === TriggerTypes.traceid) {
     request = TraceIDRequest(traceid);
+  } else if (type === TriggerTypes.kafka) {
+    request = KafkaRequest(kafka);
   }
 
-  const {entryPoint, method} = EntryData[type](request);
+  const {entryPoint, method} = EntryData[type || TriggerTypes.http](request);
 
   return {
     type,

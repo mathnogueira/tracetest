@@ -15,12 +15,12 @@ components:
         testId:
           type: string
         runId:
-          type: string
+          type: integer
         spanId:
           type: string
         selector:
           type: string
-        environmentId:
+        variableSetId:
           type: string
     ResolveResponseInfo:
       type: object

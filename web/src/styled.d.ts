@@ -3,6 +3,7 @@ import {CSSProperties} from 'react';
 import 'styled-components';
 
 type TNotification = {
+  color: string;
   style: CSSProperties;
 };
 
@@ -19,6 +20,7 @@ declare module 'styled-components' {
       error: string;
       interactive: string;
       primary: string;
+      primaryLight: string;
       success: string;
       text: string;
       textHighlight: string;
@@ -35,6 +37,7 @@ declare module 'styled-components' {
       md: string;
       lg: string;
       xl: string;
+      xxxl: string;
     };
     /** Font defaults */
     font: {

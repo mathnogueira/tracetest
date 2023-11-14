@@ -7,6 +7,11 @@ export const DOCUMENTATION_URL = 'https://docs.tracetest.io';
 export const GITHUB_URL = 'https://github.com/kubeshop/tracetest';
 export const GITHUB_ISSUES_URL = 'https://github.com/kubeshop/tracetest/issues/new/choose';
 export const DISCORD_URL = 'https://discord.gg/6zupCZFQbe';
+export const OCTOLIINT_ISSUE_URL = 'https://github.com/kubeshop/tracetest/issues/2615';
+export const CLI_RUNNING_TESTS_URL = 'https://docs.tracetest.io/cli/running-tests';
+export const CLI_RUNNING_TEST_SUITES_URL = 'https://docs.tracetest.io/cli/running-test-suites';
+
+export const INGESTOR_ENDPOINT_URL = 'https://docs.tracetest.io/configuration/ingestor-endpoint';
 
 export const TRACE_SEMANTIC_CONVENTIONS_URL =
   'https://github.com/open-telemetry/opentelemetry-specification/tree/main/specification/trace/semantic_conventions';
@@ -15,10 +20,15 @@ export const RESOURCE_SEMANTIC_CONVENTIONS_URL =
 export const TRACE_DOCUMENTATION_URL =
   'https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/api.md';
 
-export const ADD_TEST_SPECS_DOCUMENTATION_URL = 'https://docs.tracetest.io/web-ui/creating-test-specifications';
+export const OPENING_TRACETEST_URL = 'https://docs.tracetest.io/getting-started/open/';
+export const ADD_TEST_URL = 'https://docs.tracetest.io/web-ui/creating-tests';
+export const ADD_TEST_SUITE_URL = 'https://docs.tracetest.io/web-ui/creating-test-suites';
 export const ADD_TEST_OUTPUTS_DOCUMENTATION_URL = 'https://docs.tracetest.io/web-ui/creating-test-outputs';
+export const ANALYZER_DOCUMENTATION_URL = 'https://docs.tracetest.io/analyzer/concepts';
+export const TEST_RUNNER_DOCUMENTATION_URL = 'https://docs.tracetest.io/configuration/test-runner';
+export const ANALYZER_RULES_DOCUMENTATION_URL = 'https://docs.tracetest.io/analyzer/rules';
 export const EXPRESSIONS_DOCUMENTATION_URL = 'https://docs.tracetest.io/concepts/expressions';
-export const ENVIRONMENTS_DOCUMENTATION_URL = 'https://docs.tracetest.io/concepts/environments';
+export const VARIABLE_SET_DOCUMENTATION_URL = 'https://docs.tracetest.io/concepts/variable-sets';
 
 export const SELECTOR_LANGUAGE_CHEAT_SHEET_URL = `${process.env.PUBLIC_URL}/SL_cheat_sheet.pdf`;
 
@@ -53,9 +63,9 @@ export enum RouterSearchFields {
 export enum SupportedPlugins {
   REST = 'REST',
   CURL = 'CURL',
-  Messaging = 'Messaging',
   GRPC = 'GRPC',
   Postman = 'Postman',
   OpenAPI = 'OpenAPI',
   TraceID = 'TraceID',
+  Kafka = 'Kafka',
 }

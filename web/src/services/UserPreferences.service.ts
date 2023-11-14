@@ -7,10 +7,11 @@ const localStorageGateway = LocalStorageGateway<IUserPreferences>(storageKey);
 
 const initialUserPreferences: IUserPreferences = {
   lang: 'en',
-  environmentId: '',
+  variableSetId: '',
   initConfigSetup: true,
   initConfigSetupFromTest: true,
   showGuidedTourNotification: true,
+  showAttributeTooltip: true,
 };
 
 const UserPreferencesService = () => ({

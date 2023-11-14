@@ -4,8 +4,11 @@ import {createContext, useCallback, useContext, useEffect, useMemo} from 'react'
 import Config from 'models/Config.model';
 import DataStoreConfig from 'models/DataStoreConfig.model';
 import Demo from 'models/Demo.model';
+import Linter from 'models/Linter.model';
 import Polling from 'models/Polling.model';
-import {useGetDataStoresQuery, useGetConfigQuery, useGetDemoQuery, useGetPollingQuery} from 'redux/apis/TraceTest.api';
+import TestRunner from 'models/TestRunner.model';
+import {useCapture} from 'providers/Capture';
+import TracetestAPI from 'redux/apis/Tracetest';
 import {useAppDispatch, useAppSelector} from 'redux/hooks';
 import {setUserPreference} from 'redux/slices/User.slice';
 import UserSelectors from 'selectors/User.selectors';
@@ -25,10 +28,12 @@ interface IContext {
   config: Config;
   pollingProfile: Polling;
   demos: Demo[];
+  linter: Linter;
+  testRunner: TestRunner;
 }
 
 const Context = createContext<IContext>({
-  dataStoreConfig: DataStoreConfig([]),
+  dataStoreConfig: DataStoreConfig({}),
   skipConfigSetup: noop,
   skipConfigSetupFromTest: noop,
   isLoading: false,
@@ -39,6 +44,8 @@ const Context = createContext<IContext>({
   config: Config(),
   pollingProfile: Polling(),
   demos: [],
+  linter: Linter(),
+  testRunner: TestRunner(),
 });
 
 interface IProps {
@@ -48,9 +55,18 @@ interface IProps {
 export const useSettingsValues = () => useContext(Context);
 
 const SettingsValuesProvider = ({children}: IProps) => {
+  const {
+    useGetDataStoreQuery,
+    useGetConfigQuery,
+    useGetDemoQuery,
+    useGetPollingQuery,
+    useGetLinterQuery,
+    useGetTestRunnerQuery,
+  } = TracetestAPI.instance;
+
   // DataStore
   const dispatch = useAppDispatch();
-  const {data: dataStoreConfig = DataStoreConfig([]), isLoading, isError, isFetching} = useGetDataStoresQuery({});
+  const {data: dataStoreConfig = DataStoreConfig({}), isLoading, isError, isFetching} = useGetDataStoreQuery({});
   const initConfigSetup = useAppSelector(state => UserSelectors.selectUserPreference(state, 'initConfigSetup'));
   const initConfigSetupFromTest = useAppSelector(state =>
     UserSelectors.selectUserPreference(state, 'initConfigSetupFromTest')
@@ -80,18 +96,26 @@ const SettingsValuesProvider = ({children}: IProps) => {
 
   // Config
   const {data: config = Config()} = useGetConfigQuery({});
+  const {load} = useCapture();
 
   useEffect(() => {
     Env.set('analyticsEnabled', config.analyticsEnabled);
     AnalyticsService.load();
     AnalyticsService.identify();
-  }, [config]);
+    load();
+  }, [config, load]);
 
   // Polling
   const {data: pollingProfile = Polling()} = useGetPollingQuery({});
 
   // Demo
   const {data: demos = []} = useGetDemoQuery({});
+
+  // Linter
+  const {data: linter = Linter()} = useGetLinterQuery({});
+
+  // Test Runner
+  const {data: testRunner = TestRunner()} = useGetTestRunnerQuery({});
 
   const value = useMemo<IContext>(
     () => ({
@@ -106,6 +130,8 @@ const SettingsValuesProvider = ({children}: IProps) => {
       config,
       pollingProfile,
       demos,
+      linter,
+      testRunner,
     }),
     [
       dataStoreConfig,
@@ -119,6 +145,8 @@ const SettingsValuesProvider = ({children}: IProps) => {
       config,
       pollingProfile,
       demos,
+      linter,
+      testRunner,
     ]
   );
 
